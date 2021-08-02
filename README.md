@@ -3,7 +3,7 @@
 
 Holding repo for code (principally lambda functions) relating to the automated transform and upload of datasets to the CMD platform.
 
-Initial infrastructure sketch: [[https://github.com/ONS-OpenData/dp-opendata-upload/blob/master/documentation/opendatatransformupload.png|alt=infrastructure]]
+Initial infrastructure sketch: (click me)[https://github.com/ONS-OpenData/dp-opendata-upload/blob/master/documentation/opendatatransformupload.png]
 
 
 ### Components
