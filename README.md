@@ -8,7 +8,7 @@ Initial infrastructure sketch: [click me](https://github.com/ONS-OpenData/dp-ope
 
 ### Components
 
-Lambda (and one lambda wrapped in a container) component we're using.
+Lambda (and one lambda wrapped in a container) components we're using.
 
 | Name | Type | Location | Description |
 | ---- | ---- | -------- | ----------- |
