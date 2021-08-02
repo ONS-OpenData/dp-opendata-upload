@@ -25,7 +25,7 @@ We're also using a few AWS **SNS** (simple notification service) queues to trigg
 
 For a nice video on queues and why they're great see the first 3-4 minutes of [https://www.cloudamqp.com/blog/microservices-message-queue-video.html](https://www.cloudamqp.com/blog/microservices-message-queue-video.html).
 
-For persepctive, "Kafka" is a brand name of a particularly performant queue. The queues built into the AWS platform (like SNS) are easily powerful enough for our purposes here (and dont require their own servers/maintenance).
+For perspective, "Kafka" is a brand name of a particularly performant queue. The queues built into the AWS platform (like SNS) are easily powerful enough for our purposes here (and dont require their own servers/maintenance).
  
 | Name | Description |
 | ---- | ----------- |
