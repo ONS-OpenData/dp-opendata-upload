@@ -19,7 +19,7 @@ Initial infrastructure sketch: [click me](https://github.com/ONS-OpenData/dp-ope
 
 We're also using two SNS queuss to trigger the transforms via instructions from earlier lambdas.
 
-For basic info on queues and why they're great see [https://www.cloudamqp.com/blog/microservices-message-queue-video.html](https://www.cloudamqp.com/blog/microservices-message-queue-video.html).
+For a nice video on queues and why they're great see the first 3-4 minutes of [https://www.cloudamqp.com/blog/microservices-message-queue-video.html](https://www.cloudamqp.com/blog/microservices-message-queue-video.html).
 
 For persepctive, "Kafka" is a brand name of a particularly performant queue. The queues build into AWS (like SNS) are easily powerful enough for our purposes here (and dont require their own servers/maintenance.
  
