@@ -32,4 +32,4 @@ For perspective, "Kafka" is a brand name of a particularly performant queue. The
 | sns-opendata-transform-topic | Holds json messages with the information for triggering dp-tranformer-lambda |
 | sns-opendata-transform-persistent-topic | Holds json messages with the information for triggering dp-tranformer-persistent |
 | sns-opendata-metadata-request-topic | Message for triggering `dp-v4-automated-upload-metadata-parser` to create metadata `dp-v4-automated-upload` can use |
-| sns-opendata-metadata-response-topic | Messages containing the metadata (as json) that 'dp-v4-automated-upload' uses |
+| sns-opendata-metadata-response-topic | Messages containing the metadata (as json) that 'dp-v4-automated-upload` uses |
