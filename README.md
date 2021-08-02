@@ -10,7 +10,7 @@ Initial infrastructure sketch: [click me](https://github.com/ONS-OpenData/dp-ope
 
 | Name | Type | Location | Description |
 | ---- | ---- | -------- | ----------- |
-| dp-transform-decision-lambda | Lambda | `./lambdas/dp-transform-decision-lambda` | Per task, either trigger `dp-transformer-lambda` or sends a message to `dp-transform-persistent-queue` uses information from `dp-transform-details-lambda` |
+| dp-transform-decision-lambda | Lambda | `./lambdas/dp-transform-decision-lambda` | Per task, gathers details and sends a message to either `sns-opendata-transform-topic` or `sns-opendata-transform-persistent-topic`. |
 | dp-tranformer-lambda | Lambda | '`./lambdas/dp-transformer-lambda` | Transform source(s) to v4 files. |
 | dp-transformer-persistent | AWS Fargate | `/containers/dp-transformer-persistant` | Wraps `dp-transformer-lambda`'s code in a dockerfile for deployment as CaaS. |
 | dp-transform-details-lambda | Lambda | `./lambdas/dp-transform-details-lambda` | Given a starting point of  bucket url, gets relevant details required to run the transform/upload process. |
