@@ -10,7 +10,7 @@ Initial infrastructure sketch: [click me](https://github.com/ONS-OpenData/dp-ope
 
 | Name | Type | Location | Description |
 | ---- | ---- | -------- | ----------- |
-| dp-transform-decision-lambda | Lambda | `./lambdas/dp-transform-decision-lambda` | Per task, either trigger `dp-transform-lambda` or sends a message to `dp-transform-persistent-queue` uses information from `dp-transform-details-lambda` |
+| dp-transform-decision-lambda | Lambda | `./lambdas/dp-transform-decision-lambda` | Per task, either trigger `dp-transformer-lambda` or sends a message to `dp-transform-persistent-queue` uses information from `dp-transform-details-lambda` |
 | dp-tranformer-lambda | Lambda | '`./lambdas/dp-transformer-lambda` | Transform source(s) to v4 files.
 | dp-transform-persistent-queue | SQS | `./documentation/sqs.md` (documentation only) | Simple queue to hold details of long running transforms that need to be ran. |
 | dp-transformer-persistent | AWS Fargate | `/containers/dp-transformer-persistant` | Wraps `dp-transformer-lambda`'s code in a dockerfile for deployment as CaaS. |
