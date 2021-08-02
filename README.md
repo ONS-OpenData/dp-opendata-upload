@@ -17,7 +17,11 @@ Initial infrastructure sketch: [click me](https://github.com/ONS-OpenData/dp-ope
 | dp-v4-automated-upload | Lambda | `./lambdas/dp-v4-automated-upload` | Given an s3 url to a v4, uploads the v4 to cmd. |
 | dp-v4-automated-upload-metadata-parser | Lambda | `./lambdas/dp-v4-automated-upload-metadata-parser` | Given an s3 url to metadata in whatever format, return metadata in expected format to `dp-v4-automated-upload`. |
 
-We're also using two SNS queus to trigger the transforms via instructions from earlier lambdas.
+We're also using two SNS queuss to trigger the transforms via instructions from earlier lambdas.
+
+For basic info on queues and why they're great see [https://www.cloudamqp.com/blog/microservices-message-queue-video.html](https://www.cloudamqp.com/blog/microservices-message-queue-video.html).
+
+For persepctive, "Kafka" is a brand name of a particularly performant queue. The queues build into AWS (like SNS) are easily powerful enough for our purposes here (and dont require their own servers/maintenance.
  
 | Name | Description |
 | ---- | ----------- |
