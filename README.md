@@ -21,7 +21,7 @@ Lambda (and one lambda wrapped in a container) component we're using.
 
 ### SNS Message Queues
 
-We're also using two AWS **SNS** (simple notification service) queues to trigger the transforms. This keeps everything scalable and secure by default (we really don't want to get into http authentication without a good reason).
+We're also using a few AWS **SNS** (simple notification service) queues to trigger the transforms. This keeps everything scalable and secure by default (we really don't want to get into http authentication without a good reason).
 
 For a nice video on queues and why they're great see the first 3-4 minutes of [https://www.cloudamqp.com/blog/microservices-message-queue-video.html](https://www.cloudamqp.com/blog/microservices-message-queue-video.html).
 
@@ -31,3 +31,5 @@ For persepctive, "Kafka" is a brand name of a particularly performant queue. The
 | ---- | ----------- |
 | sns-opendata-transform-topic | Holds json messages with the information for triggering dp-tranformer-lambda |
 | sns-opendata-transform-persistent-topic | Holds json messages with the information for triggering dp-tranformer-persistent |
+| sns-opendata-metadata-request-topic | Message for triggering `dp-v4-automated-upload-metadata-parser` to create metadata `dp-v4-automated-upload` can use |
+| sns-opendata-metadata-response-topic | Messages containing the metadata (as json) that 'dp-v4-automated-upload' uses |
