@@ -25,7 +25,7 @@ Lambda (and one lambda wrapped in a container) components we're using.
 | opendata-v4-upload-initialiser | Lambda | `./lambdas/opendata-v4-upload-initialiser` | Given an s3 url to a v4, beings the upload, goes as far as starting observation importing then triggers `opendata-v4-upload-poller`. |
 | opendata-v4-upload-metadata-parser | Lambda | `./lambdas/opendata-v4-upload-metadata-parser` | Given an s3 url to metadata in whatever format, return metadata in expected format to `opendata-v4-upload-initialiser`. |
 | opendata-v4-upload-poller | Lambda | `./lambdas/opendata-v4-upload-poller` | Polls the apis, when the observation imports have finished triggers `opendata-v4-upload-finaliser` | 
-| opendata-v4-upload-finaliser | Lambda | `./lambdas/opendata-v4-upload-metadata-parser` | Given an s3 url to metadata in whatever format, return metadata in expected format to `opendata-v4-upload-initialiser`. |
+| opendata-v4-upload-finaliser | Lambda | `./lambdas/opendata-v4-upload-metadata-parser` | Finshes the upload process. |
 
 ### SNS Message Queues
 
