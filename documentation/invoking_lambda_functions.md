@@ -63,6 +63,6 @@ def lambda_handler(event, context):
 
 ```
 
-The result would be `other-lambda-function` is triggered and has `{"foo": "bar"}` in its starting event variable.
+The result would be `another-lambda-function` is triggered and has `{"foo": "bar"}` in its starting event variable.
 
 
