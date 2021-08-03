@@ -3,7 +3,7 @@
 
 Holding repo for code (principally lambda functions) relating to the automated transform and upload of datasets to the CMD platform.
 
-The general principle is we want to use lambda functions as much as possible as (a) microservice architecture scales incredibly well (b) they're easy to maintain and (c) they're easy to write (f) for our purposes and the scale we're working at they're cheap to the point of free (quite possibly literally free).
+The general principle is we want to use lambda functions as much as possible as (a) microservice architecture scales incredibly well (b) they're easy to maintain (c) they're easy to write and (d) for our purposes and the scale we're working at they're cheap to the point of free (quite possibly literally free - will see).
 
 The downside of lambdas is the 15 minute timeout, this only applies at the pint we're transforming non-v4 data into v4 data so we're handling these cases with a fallback (think: an alternate "persistent" transform service) via AWS Fargate.
 
