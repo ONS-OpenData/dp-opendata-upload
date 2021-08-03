@@ -7,7 +7,7 @@ The general principle is we want to use lambda functions as much as possible as 
 
 The downside of lambdas is the 15 minute timeout, this only applies at the point we're transforming non-v4 data into v4 data so we're handling these cases with a fallback (think: an alternate "persistent" transform service) via AWS Fargate.
 
-_A note on Microservices: The term gets thrown around a lot and most "micro" services .. aren't. These are, this idea of having a larger number of littler things is deliberate and best practice re SE design principles (you put the complexirty in the architecture not the code, because the architecture doesn't change)._
+_A note on Microservices: The term gets thrown around a lot and most "micro" services .. aren't. These are, this idea of having a larger number of littler things is deliberate and best practice re SE design principles (you put the complexity in the architecture not the code - because the architecture doesn't change)._
 
 Infrastructure diagram: [click me](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/documentation/opendatatransformupload.png)
 
