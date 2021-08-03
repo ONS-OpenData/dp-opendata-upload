@@ -5,7 +5,7 @@ Holding repo for code (principally lambda functions) relating to the automated t
 
 The general principle is we want to use lambda functions as much as possible as (a) microservice architecture scales incredibly well (b) they're easy to maintain and (c) they're easy to write.
 
-The downside of lambdas is the 15 minute timeout, this only applies at the pint we're transforming non-v4 data into v4 data so we're handling these cases with a fallback (alternate "persistent" transform service) via AWS Fargate.
+The downside of lambdas is the 15 minute timeout, this only applies at the pint we're transforming non-v4 data into v4 data so we're handling these cases with a fallback (think: an alternate "persistent" transform service) via AWS Fargate.
 
 Initial infrastructure sketch: [click me](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/documentation/opendatatransformupload.png)
 
