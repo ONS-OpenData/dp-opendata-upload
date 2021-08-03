@@ -37,5 +37,5 @@ For perspective, "Kafka" is a brand name of a particularly performant queue. The
  
 | Name | Description |
 | ---- | ----------- |
-| sns-opendata-transform-persistent-topic | Holds json messages with the information for triggering dp-tranformer-persistent |
+| sns-opendata-transform-persistent-topic | Holds json messages with the information for triggering opendata-tranformer-persistent |
 
