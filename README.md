@@ -5,7 +5,7 @@ Holding repo for code (principally lambda functions) relating to the automated t
 
 The general principle is we want to use lambda functions as much as possible as (a) microservice architecture scales incredibly well (b) they're easy to maintain (c) they're easy to write and (d) for our purposes and the scale we're working at they're cheap to the point of free (quite possibly literally free - will see).
 
-The downside of lambdas is the 15 minute timeout, this only applies at the pint we're transforming non-v4 data into v4 data so we're handling these cases with a fallback (think: an alternate "persistent" transform service) via AWS Fargate.
+The downside of lambdas is the 15 minute timeout, this only applies at the point we're transforming non-v4 data into v4 data so we're handling these cases with a fallback (think: an alternate "persistent" transform service) via AWS Fargate.
 
 _A note on Microservices: The term gets thrown around a lot and most "micro" services .. aren't. These are, this idea of having a larger number of littler things is deliberate and best practice re SE design principles (you put the complexirty in the architecture not the code, because the architecture doesn't change)._
 
