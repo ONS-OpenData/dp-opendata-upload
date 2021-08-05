@@ -43,4 +43,4 @@ would have the manifest
 
 ### what's the point of metadata_handler?
 
-tbh in most cases it'll be unnecessary, but as soon as we start getting 2 way of representing metadata in the same format (i.e 2 json representations of metadata that need to be parsed in slightly different ways) it'll our lives _much_ easier. 
+tbh in most cases it'll be unnecessary, but as soon as we start getting 2 way of representing metadata in the same format (i.e 2 json representations of metadata that need to be parsed in slightly different ways) it'll make our lives _much_ easier. 
