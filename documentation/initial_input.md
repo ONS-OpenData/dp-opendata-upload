@@ -26,7 +26,7 @@ All files from the zip other than `manifest.json` and the file declared by the a
 contents of zip
 
 ```
-/manfiest.json
+/manifest.json
 /ashe_metadata_csvw.json
 /ashe_source1.xls
 /ashe_source2.xls
