@@ -19,7 +19,7 @@ The `manifest.json` will contain the following json key
 }
 ```
 
-All files from the zip that other than `manifest.json` and the file declared by the above `metadata` key are assumed to be source data files required by a transform.
+All files from the zip other than `manifest.json` and the file declared by the above `metadata` key are assumed to be source data files required by a transform.
 
 **Example**
 
