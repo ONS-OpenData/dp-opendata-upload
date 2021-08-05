@@ -10,7 +10,7 @@ The contents of this zip file will be:
 /<1-n files of source data in whatever format>
 ```
 
-The `manfiest.json` will contain the following json key
+The `manifest.json` will contain the following json key
 
 ```json
 {
