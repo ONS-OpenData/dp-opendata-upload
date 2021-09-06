@@ -1,0 +1,4 @@
+{
+    "bucket": "fake bucket for valid message test",
+    "zip_file": "details-lambda-test/fake-file.zip"
+}

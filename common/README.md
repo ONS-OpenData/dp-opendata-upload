@@ -1,0 +1,1 @@
+Shared python code copied into all lambda images.
