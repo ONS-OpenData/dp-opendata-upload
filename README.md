@@ -49,7 +49,7 @@ _Note: I'm not putting the region on github, just look in the console._
 
 ### Usage
 
-To update the lambda image on aws to match whats in this repo, pass the name of the lambda function to the makefile, example:
+To update the lambda image on aws to match whats defined in this repo, pass the name of the lambda function to the makefile, example:
 
 ```
 make lambda=opendata-transform-decision-lambda
