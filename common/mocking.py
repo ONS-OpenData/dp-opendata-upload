@@ -16,10 +16,7 @@ class MockClient:
 
     def invoke(self, FunctionName: str, InvocationType: str, Payload: str):
         """
-        Decide what mocked response to return based on the payload fixture.
-
-        Typically, this will need to be something we've specifically passed in
-        via the initial message fixture.
+        Decide what mocked response to return based on the payload.
         """
         logging.warning("Calling MOCKED lambda client")
 

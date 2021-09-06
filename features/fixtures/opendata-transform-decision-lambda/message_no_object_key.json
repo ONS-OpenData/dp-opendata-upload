@@ -5,7 +5,7 @@
         "eventSource": "xxxxxxx",
         "awsRegion": "xxxxxxx",
         "eventTime": "2021-08-05T13:21:27.778Z",
-        "eventName": "MOCK:No Object Key",
+        "eventName": "xxxxxxx",
         "userIdentity": {
           "principalId": "xxxxxxx"
         },

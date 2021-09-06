@@ -5,7 +5,7 @@
       "eventSource": "aws:s3",
       "awsRegion": "xxxxxxx",
       "eventTime": "2021-08-05T13:21:27.778Z",
-      "eventName": "MOCK:No Response From Details Lambda",
+      "eventName": "xxxxxxx",
       "userIdentity": {
         "principalId": "xxxxxxx"
       },
