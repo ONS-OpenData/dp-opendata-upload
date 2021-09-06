@@ -27,12 +27,43 @@ Where more than one scenario has the same name, combine both techiques.
 
 These tests are _not_ end to end tests. When running tests the boto3 lambda client is replaced with a MockClient that returns hard coded responses. Each feature will pass or fail independently of the others.
 
-_Note: a bit slow for now as the rie container (re)builds on each scenario rather than each feature. Fixable but not urgent._
+_Note: a bit slow for now as container (re)builds on each scenario rather than each feature. Fixable but not urgent._
 
 
 ## Deployment
 
-TODO
+You'll only need to do the setup bit once.
 
 
+### Setup
 
+First, you'll need to have the ecr url exported via an environment variable `AWS_ECR_URL`.
+
+You then need to register your docker client with your aws cli (just once) via:
+
+```
+aws ecr get-login-password --region <REGION> | docker login --username AWS --password-stdin $AWS_ECR_URL
+```
+
+_Note: I'm not putting the region on github, just look in the console._
+
+### Usage
+
+To update the lambda image on aws to match whats in this repo, pass the name of the lambda function to the makefile, example:
+
+```
+make lambda=opendata-transform-decision-lambda
+```
+
+From there (for now) you'll need to go into the lambda console and update the lambda in quesion to use that new image (use browse).
+
+If it tells you the ecr entry doesnt exist yet then:
+
+* (a) You've typo'd it.
+* (b) Its the first time we've tried to push an image for this lambda so we need to create an entry on the container registry.
+
+You can fix (b) with the makefile, example:
+
+```
+make lambda=opendata-transform-decision-lambda register
+```
