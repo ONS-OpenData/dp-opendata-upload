@@ -1,4 +1,4 @@
-# The event tirggered by our initial xip file entering the bucket
+# The event triggered by our initial xip file entering the bucket
 bucket_notification_event_schema = {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object",
@@ -89,8 +89,8 @@ bucket_notification_event_schema = {
     "required": ["Records"],
 }
 
-# The source dict we construct in opendata-transform-decision-lambda
-decision_lambda_source_schema = {
+# A dict to allow access to the original zip in the source bucket
+source_bucket_schema = {
     "properties": {
         "bucket": {"type": "string"},
         "zip_file": {"type": "string", "pattern": "zip$"},
@@ -98,7 +98,7 @@ decision_lambda_source_schema = {
     "required": ["bucket", "zip_file"],
 }
 
-# The payload recieged back from opendata-transform-details-lambda
+# The payload received back from opendata-transform-details-lambda
 transform_details_schema = {
     "properties": {
         "transform": {"type": "string"},
@@ -116,21 +116,37 @@ transform_details_schema = {
     ],
 }
 
-# The payload sent to opendata-v4-transform-lambda service for short transforms
-short_transform_evocation_payload_schema = {
+# The payload sent to initialise the transform or skip transform) process
+transform_evocation_payload_schema = {
     "properties": {
         "transform": {"type": "string"},
         "dataset_id": {"type": "string"},
         "edition_id": {"type": "string"},
         "collection_name": {"type": "string"},
+        "source": {
+            "type": "object",
+            "properties": {
+                "bucket": {"type": "string"},
+                "zip_file": {"type": "string", "pattern": "zip$"},
+            }
+        }
     },
     "required": [
         "transform",
         "dataset_id",
         "edition_id",
         "collection_name",
+        "source",
     ],
 }
 
-# the metdata dict being pulled out by opendata-transform-decision-lambda
-details_lambda_dict = {}
+# TODO - more details
+# Dict with the required metadata to upload a v4
+valid_metadata_schema = {
+    "properties": {
+        "metadata": {"type": "object"},
+        "dimension_data": {"type": "object"},
+        "usage_notes": {"type": "object"},
+    },
+    "required": ["metadata", "dimension_data", "usage_notes"],
+}

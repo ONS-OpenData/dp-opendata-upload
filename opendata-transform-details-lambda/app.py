@@ -7,6 +7,8 @@ import boto3
 
 # When we build the container the imports from ../common will be exist locally to the function.
 # This catch is just to enable intellisense while developing.
+# When we're closer to done, the contents of /common will be a pip installable package so
+# this nasty catch can go.
 try:
     from ..common.helpers import (
         log_as_incomplete,
@@ -14,23 +16,23 @@ try:
         json_validate,
         dataset_name_from_zip_name,
     )
-    from ..common.mocking import MockClient
-    from ..common.schemas import decision_lambda_source_schema, transform_details_schema
+    from ..common.mocking import MockLambdaClient
+    from ..common.schemas import source_bucket_schema, transform_details_schema
 except ImportError:
     from helpers import log_as_incomplete, log_as_complete, json_validate, dataset_name_from_zip_name
-    from mocking import MockClient
-    from schemas import decision_lambda_source_schema, transform_details_schema
+    from mocking import MockLambdaClient
+    from schemas import source_bucket_schema, transform_details_schema
 
 # When testing, use the mocked lambda client
 if os.environ.get("IS_TEST", None):
-    client = MockClient()
+    client = MockLambdaClient()
 else:
     client = client = boto3.client("lambda")
 
 
 def handler(event, context):
 
-    json_validate(event, decision_lambda_source_schema)
+    json_validate(event, source_bucket_schema)
 
     zip_file = event.get("zip_file")
     dataset_name = dataset_name_from_zip_name(zip_file)
@@ -38,8 +40,8 @@ def handler(event, context):
     # Get transform details from details.json
     with open("details.json") as f:
         data = json.load(f)
-    dataset_info = data.get(dataset_name)
-    json_validate(dataset_info, transform_details_schema)
+    transform_details_dict = data.get(dataset_name)
+    json_validate(transform_details_dict, transform_details_schema)
 
     r = client.invoke(
         FunctionName="opendata-metadata-validator",
@@ -54,10 +56,10 @@ def handler(event, context):
             f"Failed to get response from opendata-metadata-validator, with status code {payload_dict['statusCode']}"
         )
 
-    is_valid = strtobool(json.loads(payload_dict["body"])["is_valid"])
+    is_valid = strtobool(json.loads(payload_dict["body"])["valid"])
     if not is_valid:
         log_as_incomplete()
         raise Exception("Aborting for invalid metadata.")
 
     log_as_complete()
-    return {"statusCode": 200, "body": json.dumps({"transform_details": dataset_info})}
+    return {"statusCode": 200, "body": json.dumps({"transform_details": transform_details_dict})}

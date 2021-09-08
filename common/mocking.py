@@ -3,25 +3,72 @@ import json
 import logging
 
 
-class MockClient:
+class MockS3Client:
     """
-    Simple wrapper for dot notation access to mocked responses.
+    Simple mock s4 client
+    """
 
-    Note: remember to json.dumps() the dicts, this is how they
+    def __init__(self):
+        logging.info("Using MOCKED s3 client")
+
+    def head_object(self, Bucket=None, Key=None):
+
+        assert Bucket, 'Mock s3 method required both the Bucket and Key kwargs'
+        assert Key, 'Mock s3 method required both the Bucket and Key kwargs'
+        
+        if Key == "dataset-work-all-the-way-through/example.zip":
+            return {
+                "Metadata": {
+                    "source": {
+                        "zip_file": "source-from-mock-s3-thats-valid/example.zip",
+                        "bucket": "irrelevant"
+                    }
+                }
+            }
+        elif Key == "dataset-dont-auto-upload/example.zip":
+            return {}
+        else:
+            raise Exception(f'Couldnt find a mock reponse for Bucket {Bucket}, Key {Key}')
+
+class MockLambdaClient:
+    """
+    Simple mock lambda client.
+
+    Note: remember to json.dumps() the dicts, this is how
     the reponses get returned live.
     """
 
     def __init__(self):
-        pass
+        logging.info("Using MOCKED lambda client")
 
     def invoke(self, FunctionName: str, InvocationType: str, Payload: str):
         """
         Decide what mocked response to return based on the payload.
         """
-        logging.warning("Calling MOCKED lambda client")
 
-        # Use test payload to decide what we're returning
         payload_as_dict = json.loads(Payload)
+
+        if FunctionName == "opendata-v4-upload-metadata-parser":
+
+            if (
+                payload_as_dict["zip_file"]
+                == "source-from-mock-s3-thats-valid/example.zip"
+            ):
+                payload = json.dumps(
+                        {
+                            "body": json.dumps(
+                                {
+                                    "metadata": {},
+                                    "dimension_data": {},
+                                    "usage_notes": {}
+                                }
+                            ),
+                            "statusCode": 200,
+                        }
+                    )
+                return {
+                        "Payload": BytesIO(initial_bytes=bytes(payload, encoding="utf-8"))
+                    }
 
         if FunctionName == "opendata-transformer-lambda":
 
@@ -72,7 +119,7 @@ class MockClient:
             if payload_as_dict["bucket"] == "fake bucket for valid message test":
                 payload = json.dumps(
                     {
-                        "body": json.dumps({"is_valid": "true"}),
+                        "body": json.dumps({"valid": "True"}),
                         "statusCode": 200,
                     }
                 )

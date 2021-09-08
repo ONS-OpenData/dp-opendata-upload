@@ -105,3 +105,19 @@ def step_impl(context):
             raise AssertionError(
                 f'Could not find a log line contains both "{level}" and "{text}" in logs.'
             )
+
+@then(u'no warning or error logs should occur')
+def step_impl(context):
+    log_lines = context.test_container.logs(timestamps=True).decode("utf-8").split("\n")
+    found = False
+    for log_line in log_lines:
+        if "[WARNING]" in log_line:
+            found == True
+        if "[ERROR]" in log_line:
+            found = True
+
+    if found:
+        output_container_logs(context)
+        raise AssertionError(
+            f'Found at least one instance of [WARNING] or [ERROR] logs'
+        )

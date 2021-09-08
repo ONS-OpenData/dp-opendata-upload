@@ -13,7 +13,7 @@ Feature: Transform decision lambda
     Then a log line should contain
       | level    | text                                            |
       | ERROR    | ValidationError: 'name' is a required property  |
-      | WARNING  | lambda failed to complete operation         |
+      | WARNING  | lambda failed to complete operation             |
 
   Scenario: Receive a message with no object key
     Given the lambda "opendata-transform-decision-lambda"

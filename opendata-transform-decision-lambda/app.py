@@ -7,6 +7,8 @@ import boto3
 
 # When we build the container the imports from ../common will be exist locally to the function.
 # This catch is just to enable intellisense while developing.
+# When we're closer to done, the contents of /common will be a pip installable package so
+# this nasty catch can go.
 try:
     from ..common.helpers import (
         log_as_incomplete,
@@ -14,26 +16,26 @@ try:
         TransformType,
         json_validate,
     )
-    from ..common.mocking import MockClient
+    from ..common.mocking import MockLambdaClient
     from ..common.schemas import (
         bucket_notification_event_schema,
         transform_details_schema,
-        decision_lambda_source_schema,
-        short_transform_evocation_payload_schema,
+        source_bucket_schema,
+        transform_evocation_payload_schema,
     )
 except ImportError:
     from helpers import log_as_incomplete, log_as_complete, TransformType, json_validate
-    from mocking import MockClient
+    from mocking import MockLambdaClient
     from schemas import (
         bucket_notification_event_schema,
         transform_details_schema,
-        decision_lambda_source_schema,
-        short_transform_evocation_payload_schema,
+        source_bucket_schema,
+        transform_evocation_payload_schema,
     )
 
 # When testing, use the mocked lambda client
 if os.environ.get("IS_TEST", None):
-    client = MockClient()
+    client = MockLambdaClient()
 else:
     client = client = boto3.client("lambda")
 
@@ -49,7 +51,7 @@ def handler(event, context):
     zip_file = record["s3"]["object"]["key"]
 
     source_dict = {"bucket": bucket, "zip_file": zip_file}
-    json_validate(source_dict, decision_lambda_source_schema)
+    json_validate(source_dict, source_bucket_schema)
 
     r = client.invoke(
         FunctionName="opendata-transform-details-lambda",
@@ -73,15 +75,21 @@ def handler(event, context):
         raise NotImplementedError("Not looking at long running transforms yet.")
 
     elif transform_type == TransformType.none.value:
-        log_as_incomplete()
-        raise NotImplementedError(
-            "Not looking at sources that dont need transforms yet."
+        transform_details["source"] = source_dict
+        del transform_details["transform_type"]  # no longer needed
+        json_validate(transform_details, transform_evocation_payload_schema)
+
+        client.invoke(
+            FunctionName="opendata-transformer-lambda",
+            InvocationType="Event",
+            Payload=json.dumps(transform_details),
         )
+        log_as_complete()
 
     elif transform_type == TransformType.short.value:
         transform_details["source"] = source_dict
         del transform_details["transform_type"]  # no longer needed
-        json_validate(transform_details, short_transform_evocation_payload_schema)
+        json_validate(transform_details, transform_evocation_payload_schema)
 
         client.invoke(
             FunctionName="opendata-transformer-lambda",
