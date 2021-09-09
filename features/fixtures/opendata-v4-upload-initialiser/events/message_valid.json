@@ -27,7 +27,7 @@
           "arn": "xxxxxxx"
         },
         "object": {
-          "key": "dataset-dont-auto-upload/example.zip",
+          "key": "v4_bucket/dataset-work-all-the-way-through.csv",
           "size": 6656,
           "eTag": "xxxxxxx",
           "sequencer": "xxxxxxx"

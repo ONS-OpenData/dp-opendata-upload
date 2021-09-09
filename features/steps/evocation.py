@@ -4,6 +4,8 @@ import json
 import logging
 import os
 from pathlib import Path
+from docker import tls
+from docker.api import network
 
 import requests
 from requests import Response
@@ -29,11 +31,19 @@ def output_container_logs(context):
         logging.info(f"<docker>: {log_line}")
 
 
-def start_rie(context, lambda_name):
+def start_rie(context, lambda_name: str, event_fixture: Path):
     """
     Build and run image using aws lambda Runtime Interface Emulator
     """
-    client: DockerClient = docker.from_env()
+    from docker import DockerClient
+    from docker.client import DockerClient
+
+    client: DockerClient = (
+        docker.from_env()
+    )  # DockerClient(base_url='unix://var/run/docker.sock', version='auto', tls=True)
+
+    # docker.from_env()
+
     client.images.build(
         path=str(this_dir.parent.parent.resolve()),
         buildargs={"LAMBDA_NAME": lambda_name},
@@ -41,7 +51,13 @@ def start_rie(context, lambda_name):
         rm=True,
     )
     test_container: Container = client.containers.run(
-        "lambda/testing", ports={8080: 9000}, environment={"IS_TEST": True}, detach=True
+        "lambda/testing",
+        ports={8080: 9000, 3333: 3333},
+        publish_all_ports=True,
+        environment={"IS_TEST": True, "EVENT_FIXTURE": event_fixture},
+        detach=True,
+        network_mode="bridge",
+        volumes={Path(fixture_dir / "zips"): {"bind": "/tmp/zips/", "mode": "rw"}},
     )
 
     # TODO: poll for it to start up, not just wait and hope!
@@ -57,20 +73,19 @@ def step_impl(context, lambda_name):
     """
     Specify which lambda we are testing
     """
-    start_rie(context, lambda_name)
     context.lambda_name = lambda_name
 
 
-@given('we specify the message "{sample_fixture}"')
+@given('we specify the event fixture "{sample_fixture}"')
 def step_impl(context, sample_fixture):
     """
     Load the event into a python dict as context.sample
     """
-    with open(
-        Path(fixture_dir / f"{context.lambda_name}" / f"{sample_fixture}.json")
-    ) as f:
+    event_fixture = f"{context.lambda_name}/events/{sample_fixture}.json"
+    with open(Path(fixture_dir / event_fixture)) as f:
         sample = json.load(f)
     context.sample = sample
+    context.event_fixture = event_fixture
 
 
 @given("we envoke the lambda")
@@ -78,6 +93,7 @@ def step_impl(context):
     """
     Post the dict as json to the emulated lambda
     """
+    start_rie(context, context.lambda_name, context.event_fixture)
     r: Response = requests.post(
         "http://localhost:9000/2015-03-31/functions/function/invocations",
         json=context.sample,
@@ -85,7 +101,7 @@ def step_impl(context):
     assert (
         r.ok
     ), f"Post to lambda failed, response {r.text} with status code {r.status_code}"
-    context.response = r.json()
+    context.response = r
 
 
 @then("a log line should contain")
@@ -106,7 +122,8 @@ def step_impl(context):
                 f'Could not find a log line contains both "{level}" and "{text}" in logs.'
             )
 
-@then(u'no warning or error logs should occur')
+
+@then("no warning or error logs should occur")
 def step_impl(context):
     log_lines = context.test_container.logs(timestamps=True).decode("utf-8").split("\n")
     found = False
@@ -119,5 +136,20 @@ def step_impl(context):
     if found:
         output_container_logs(context)
         raise AssertionError(
-            f'Found at least one instance of [WARNING] or [ERROR] logs'
+            f"Found at least one instance of [WARNING] or [ERROR] logs"
         )
+
+
+@then("the response returned should match")
+def step_impl(context):
+    r_json_as_str = json.dumps(context.response.json())
+    assert (
+        r_json_as_str == context.text
+    ), f"""
+    
+    Expected:
+    {context.text}
+
+    Got:
+    {r_json_as_str}
+    """

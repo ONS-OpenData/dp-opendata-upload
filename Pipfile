@@ -7,7 +7,5 @@ name = "pypi"
 behave = "*"
 docker = "*"
 
-[dev-packages]
-
 [requires]
 python_version = "3.9"

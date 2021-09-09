@@ -9,34 +9,33 @@ import boto3
 # When we're closer to done, the contents of /common will be a pip installable package so
 # this nasty catch can go.
 try:
-    from ..common.helpers import (
-        log_as_incomplete,
-        log_as_complete,
-        json_validate
+    from ..common.helpers import log_as_incomplete, log_as_complete, json_validate
+    from ..common.mocking import get_s3_client, get_lambda_client
+    from ..common.schemas import (
+        source_bucket_schema,
+        bucket_notification_v4_event_schema,
+        valid_metadata_schema,
     )
-    from ..common.mocking import MockLambdaClient, MockS3Client
-    from ..common.schemas import source_bucket_schema, bucket_notification_event_schema, valid_metadata_schema
 except ImportError:
     from helpers import log_as_incomplete, log_as_complete, json_validate
-    from mocking import MockLambdaClient, MockS3Client
-    from schemas import source_bucket_schema, bucket_notification_event_schema, valid_metadata_schema
+    from mocking import get_s3_client, get_lambda_client
+    from schemas import (
+        source_bucket_schema,
+        bucket_notification_v4_event_schema,
+        valid_metadata_schema,
+    )
 
-
-# When testing, use the mocked clients
-if os.environ.get("IS_TEST", None):
-    client = MockLambdaClient()
-    s3 = MockS3Client()
-else:
-    client = boto3.client("lambda")
-    s3 = boto3.client("s3")
 
 def handler(event, context):
     """
     Principle lambda event handler.
     """
 
-    json_validate(event, bucket_notification_event_schema)
-    records = event.get('Records', None)
+    client = get_lambda_client()
+    s3 = get_s3_client()
+
+    json_validate(event, bucket_notification_v4_event_schema)
+    records = event.get("Records", None)
     record = records[0]
 
     bucket = record["s3"]["bucket"]["name"]
@@ -46,10 +45,10 @@ def handler(event, context):
     # drop out early if its not an automated upload.
     object_response = s3.head_object(Bucket=bucket, Key=v4_file)
     try:
-        source_dict = object_response['Metadata']['source']
+        source_dict = object_response["Metadata"]["source"]
         json_validate(source_dict, source_bucket_schema)
     except KeyError:
-        logging.info('Not an automated upload, ending process.')
+        logging.info("Not an automated upload, ending process.")
         return
 
     # Fetch the metadata for it
@@ -69,11 +68,10 @@ def handler(event, context):
     json_validate(metadata_dict, valid_metadata_schema)
 
     # At this point we have
-    # metadata_dict = the metadata for the uploaf
-    # bucket + v4, the means to get the v4 file.
+    # metadata_dict = the metadata for the upload
+    # source_dict = dict with bucket + v4 filename, this is the means to get the v4 file.
     # this should be all we need to trigger the uploads
 
     # TODO - the actual upload
-
 
     log_as_complete()

@@ -1,7 +1,5 @@
-from docker.models.containers import Container
+import os
 
 
 def after_scenario(context, feature):
-    test_container: Container
-    test_container = context.test_container
-    test_container.kill()
+    context.test_container.kill()

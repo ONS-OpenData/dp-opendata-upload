@@ -1,4 +1,3 @@
-
 def handler(event, context):
     """
     Principle lambda event handler.

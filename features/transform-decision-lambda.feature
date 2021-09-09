@@ -8,7 +8,7 @@ Feature: Transform decision lambda
 
   Scenario: Receive a message with no bucket name
     Given the lambda "opendata-transform-decision-lambda"
-    And we specify the message "message_no_bucket_name"
+    And we specify the event fixture "no_bucket_name"
     And we envoke the lambda
     Then a log line should contain
       | level    | text                                            |
@@ -17,7 +17,7 @@ Feature: Transform decision lambda
 
   Scenario: Receive a message with no object key
     Given the lambda "opendata-transform-decision-lambda"
-    And we specify the message "message_no_object_key"
+    And we specify the event fixture "no_object_key"
     And we envoke the lambda
     Then a log line should contain
       | level    | text                                            |
@@ -26,7 +26,7 @@ Feature: Transform decision lambda
 
   Scenario: Receive a 500 response from the details lambda
     Given the lambda "opendata-transform-decision-lambda"
-    And we specify the message "message_failed_response_details_lambda"
+    And we specify the event fixture "failed_response_details_lambda"
     And we envoke the lambda
     Then a log line should contain
       | level    | text                                                                                             |
@@ -35,7 +35,7 @@ Feature: Transform decision lambda
 
   Scenario: Successfully Complete
     Given the lambda "opendata-transform-decision-lambda"
-    And we specify the message "message_valid"
+    And we specify the event fixture "valid"
     And we envoke the lambda
     Then a log line should contain
       | level    | text                            |

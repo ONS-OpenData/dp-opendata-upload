@@ -1,5 +1,101 @@
-# The event triggered by our initial xip file entering the bucket
-bucket_notification_event_schema = {
+# Note: we start with two huge schemas for the AWS bucket notificatons.
+# one for zip appearing in source bucket.
+# one for v4 appearing in v4 upload bucket.
+# the only difference is the file extension they check for in the key.
+
+# The event triggered by a v4 file entering the v4 bucket
+bucket_notification_v4_event_schema = {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+        "Records": {
+            "type": "array",
+            "items": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "eventVersion": {"type": "string"},
+                        "eventSource": {"type": "string"},
+                        "awsRegion": {"type": "string"},
+                        "eventTime": {"type": "string"},
+                        "eventName": {"type": "string"},
+                        "userIdentity": {
+                            "type": "object",
+                            "properties": {"principalId": {"type": "string"}},
+                            "required": ["principalId"],
+                        },
+                        "requestParameters": {
+                            "type": "object",
+                            "properties": {"sourceIPAddress": {"type": "string"}},
+                            "required": ["sourceIPAddress"],
+                        },
+                        "responseElements": {
+                            "type": "object",
+                            "properties": {
+                                "x-amz-request-id": {"type": "string"},
+                                "x-amz-id-2": {"type": "string"},
+                            },
+                            "required": ["x-amz-request-id", "x-amz-id-2"],
+                        },
+                        "s3": {
+                            "type": "object",
+                            "properties": {
+                                "s3SchemaVersion": {"type": "string"},
+                                "configurationId": {"type": "string"},
+                                "bucket": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {"type": "string"},
+                                        "ownerIdentity": {
+                                            "type": "object",
+                                            "properties": {
+                                                "principalId": {"type": "string"}
+                                            },
+                                            "required": ["principalId"],
+                                        },
+                                        "arn": {"type": "string"},
+                                    },
+                                    "required": ["name", "ownerIdentity", "arn"],
+                                },
+                                "object": {
+                                    "type": "object",
+                                    "properties": {
+                                        "key": {"type": "string", "pattern": "csv$"},
+                                        "size": {"type": "integer"},
+                                        "eTag": {"type": "string"},
+                                        "sequencer": {"type": "string"},
+                                    },
+                                    "required": ["key", "size", "eTag", "sequencer"],
+                                },
+                            },
+                            "required": [
+                                "s3SchemaVersion",
+                                "configurationId",
+                                "bucket",
+                                "object",
+                            ],
+                        },
+                    },
+                    "required": [
+                        "eventVersion",
+                        "eventSource",
+                        "awsRegion",
+                        "eventTime",
+                        "eventName",
+                        "userIdentity",
+                        "requestParameters",
+                        "responseElements",
+                        "s3",
+                    ],
+                }
+            ],
+        }
+    },
+    "required": ["Records"],
+}
+
+# The event triggered by our initial zip file entering the source bucket
+bucket_notification_source_event_schema = {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object",
     "properties": {
@@ -128,8 +224,8 @@ transform_evocation_payload_schema = {
             "properties": {
                 "bucket": {"type": "string"},
                 "zip_file": {"type": "string", "pattern": "zip$"},
-            }
-        }
+            },
+        },
     },
     "required": [
         "transform",
@@ -149,4 +245,12 @@ valid_metadata_schema = {
         "usage_notes": {"type": "object"},
     },
     "required": ["metadata", "dimension_data", "usage_notes"],
+}
+
+manifest_schema = {
+    "properties": {
+        "metadata": {"type": "string"},
+        "metadata_handler": {"type": "string", "pattern": "correctly_structured"},
+    },
+    "required": ["metadata", "metadata_handler"],
 }

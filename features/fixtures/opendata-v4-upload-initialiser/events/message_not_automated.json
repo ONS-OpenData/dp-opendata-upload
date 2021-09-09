@@ -20,13 +20,14 @@
         "s3SchemaVersion": "1.0",
         "configurationId": "xxxxxxx",
         "bucket": {
+          "name": "opendata-transform-needed-source-bucket",
           "ownerIdentity": {
             "principalId": "xxxxxxx"
           },
           "arn": "xxxxxxx"
         },
         "object": {
-          "key": "dataset1/sample.xls",
+          "key": "v4_bucket/not-an-automated-upload.csv",
           "size": 6656,
           "eTag": "xxxxxxx",
           "sequencer": "xxxxxxx"

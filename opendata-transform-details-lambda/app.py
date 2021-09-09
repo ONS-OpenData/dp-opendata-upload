@@ -16,21 +16,22 @@ try:
         json_validate,
         dataset_name_from_zip_name,
     )
-    from ..common.mocking import MockLambdaClient
+    from ..common.mocking import get_lambda_client
     from ..common.schemas import source_bucket_schema, transform_details_schema
 except ImportError:
-    from helpers import log_as_incomplete, log_as_complete, json_validate, dataset_name_from_zip_name
-    from mocking import MockLambdaClient
+    from helpers import (
+        log_as_incomplete,
+        log_as_complete,
+        json_validate,
+        dataset_name_from_zip_name,
+    )
+    from mocking import get_lambda_client
     from schemas import source_bucket_schema, transform_details_schema
-
-# When testing, use the mocked lambda client
-if os.environ.get("IS_TEST", None):
-    client = MockLambdaClient()
-else:
-    client = client = boto3.client("lambda")
 
 
 def handler(event, context):
+
+    client = get_lambda_client()
 
     json_validate(event, source_bucket_schema)
 
@@ -62,4 +63,7 @@ def handler(event, context):
         raise Exception("Aborting for invalid metadata.")
 
     log_as_complete()
-    return {"statusCode": 200, "body": json.dumps({"transform_details": transform_details_dict})}
+    return {
+        "statusCode": 200,
+        "body": json.dumps({"transform_details": transform_details_dict}),
+    }

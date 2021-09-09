@@ -20,14 +20,13 @@
         "s3SchemaVersion": "1.0",
         "configurationId": "xxxxxxx",
         "bucket": {
-          "name": "opendata-transform-needed-source-bucket",
           "ownerIdentity": {
             "principalId": "xxxxxxx"
           },
           "arn": "xxxxxxx"
         },
         "object": {
-          "key": "dataset-work-all-the-way-through/example.zip",
+          "key": "doesnt matter, should end before this is used.csv",
           "size": 6656,
           "eTag": "xxxxxxx",
           "sequencer": "xxxxxxx"

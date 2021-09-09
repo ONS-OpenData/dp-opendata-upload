@@ -1,7 +1,4 @@
 import json
-import os
-from pathlib import Path
-import logging
 
 import boto3
 
@@ -16,28 +13,22 @@ try:
         TransformType,
         json_validate,
     )
-    from ..common.mocking import MockLambdaClient
+    from ..common.mocking import get_lambda_client
     from ..common.schemas import (
-        bucket_notification_event_schema,
+        bucket_notification_source_event_schema,
         transform_details_schema,
         source_bucket_schema,
         transform_evocation_payload_schema,
     )
 except ImportError:
     from helpers import log_as_incomplete, log_as_complete, TransformType, json_validate
-    from mocking import MockLambdaClient
+    from mocking import get_lambda_client
     from schemas import (
-        bucket_notification_event_schema,
+        bucket_notification_source_event_schema,
         transform_details_schema,
         source_bucket_schema,
         transform_evocation_payload_schema,
     )
-
-# When testing, use the mocked lambda client
-if os.environ.get("IS_TEST", None):
-    client = MockLambdaClient()
-else:
-    client = client = boto3.client("lambda")
 
 
 def handler(event, context):
@@ -45,7 +36,9 @@ def handler(event, context):
     Principle lambda event handler.
     """
 
-    json_validate(event, bucket_notification_event_schema)
+    client = get_lambda_client()
+
+    json_validate(event, bucket_notification_source_event_schema)
     record = event.get("Records")[0]
     bucket = record["s3"]["bucket"]["name"]
     zip_file = record["s3"]["object"]["key"]
@@ -87,16 +80,8 @@ def handler(event, context):
         log_as_complete()
 
     elif transform_type == TransformType.short.value:
-        transform_details["source"] = source_dict
-        del transform_details["transform_type"]  # no longer needed
-        json_validate(transform_details, transform_evocation_payload_schema)
-
-        client.invoke(
-            FunctionName="opendata-transformer-lambda",
-            InvocationType="Event",
-            Payload=json.dumps(transform_details),
-        )
-        log_as_complete()
+        log_as_incomplete()
+        raise NotImplementedError("Not looking at short running transforms yet.")
 
     else:
         log_as_incomplete()
