@@ -51,7 +51,7 @@ def handler(event, context):
     source = Source(COMMON_ZIP_PATH)
     metadata_handler = source.get_metadata_handler()
 
-    # The simple_json handler is for where the metadata json should already
+    # The correctly_structured handler is for where the metadata json should already
     # be in the shape we want
     if metadata_handler == MetadataHandler.correctly_structured.value:
         with open(source.get_metadata_file_path()) as f:
