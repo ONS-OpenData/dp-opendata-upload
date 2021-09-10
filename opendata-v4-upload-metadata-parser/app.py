@@ -52,11 +52,14 @@ def handler(event, context):
     metadata_handler = source.get_metadata_handler()
 
     # The simple_json handler is for where the metadata json should already
-    # in the shape we want
+    # be in the shape we want
     if metadata_handler == MetadataHandler.correctly_structured.value:
         with open(source.get_metadata_file_path()) as f:
             metadata_dict = json.load(f)
             json_validate(metadata_dict, valid_metadata_schema)
+    else:
+        log_as_incomplete()
+        raise ValueError(f"Unknown metadata handler {metadata_handler}")
 
     log_as_complete()
     return {"statusCode": 200, "body": json.dumps(metadata_dict)}

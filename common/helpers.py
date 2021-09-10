@@ -3,7 +3,6 @@ from genericpath import exists
 import json
 import logging
 import os
-from pathlib import Path
 
 from os import listdir
 from os.path import isfile, join
@@ -56,7 +55,9 @@ class MetadataHandler(Enum):
 
 class Source:
     """
-    Wrapper for all operations relating to the source zip file
+    Wrapper for all operations relating to the source zip file.
+    Put it all here so we can pull out all the preetative code from
+    the lambdas.
     """
 
     def __init__(self, path_to_zip):
@@ -64,10 +65,10 @@ class Source:
             log_as_incomplete()
             raise FileNotFoundError(f"Cannot find source zip {path_to_zip}")
         with zipfile.ZipFile(path_to_zip, "r") as zip:
-            unzip_dir = "/tmp/data"
+            unzip_dir = "/tmp"
             zip.extractall(unzip_dir)
 
-        # Cache, as we'll check this a few times
+        # Cache, as we'll refer to this a few times
         self.manifest = None
 
     def assert_exists(self, file_path):
@@ -86,14 +87,14 @@ class Source:
             return self.manifest
 
         try:
-            with open("/tmp/data/manifest.json") as f:
+            with open(f"/tmp/manifest.json") as f:
                 self.manifest = json.load(f)
         except Exception as err:
             log_as_incomplete()
             raise err
 
         json_validate(self.manifest, manifest_schema)
-        metadata_file = f'/tmp/data/{self.manifest["metadata"]}'
+        metadata_file = f'/tmp/{self.manifest["metadata"]}'
         self.assert_exists(metadata_file)
 
         return self.manifest
@@ -119,27 +120,32 @@ class Source:
         Get the path to where we've extracted the file representing metadata,
         as taken from the initial source zip.
         """
-        return f"/tmp/data/{self.get_metadata_file_name()}"
+        return f"/tmp/{self.get_metadata_file_name()}"
 
-    def get_data_file_names(self) -> (list):
+    def get_data_file_paths(self) -> (list):
         """
         Returns a list of filepaths, each representing a single source
         data file from the initial source zip.
+
+        Ignores:
+        * the original zip
+        * the manifest.json
+        * the metadata file declare by the manfiest json
+        * macos operating system files (convenience while developing)
         """
         return [
-            f"/tmp/data{x}"
-            for x in listdir("/tmp/data")
-            if isfile(join("/tmp/data", x))
+            f"/tmp/{x}"
+            for x in listdir("/tmp")
+            if isfile(join("/tmp", x))
             and x != "manifest.json"
             and x != self.get_metadata_file_name()
             and not x.startswith("__")
             and not x == COMMON_ZIP_PATH.split("/")[-1]
         ]
-        # TODO: rather than remove __ files just dont compress them, it's a macos thing.
 
 
 def dataset_name_from_zip_name(zip_name: str) -> (str):
-    dataset_name = zip_name.split("/")[-2]  # have make sure this will always work
+    dataset_name = zip_name.split("/")[-2]  # think: make sure this will always work
     return dataset_name
 
 

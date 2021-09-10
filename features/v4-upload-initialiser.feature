@@ -9,7 +9,7 @@ Feature: V4 Upload Initialiser
 
   Scenario: Receive a message with no bucket name
     Given the lambda "opendata-v4-upload-initialiser"
-    And we specify the event fixture "message_no_bucket_name"
+    And we specify the event fixture "no_bucket_name"
     And we envoke the lambda
     Then a log line should contain
       | level    | text                                            |
@@ -18,13 +18,13 @@ Feature: V4 Upload Initialiser
 
   Scenario: Receive a message with no bucket name
     Given the lambda "opendata-v4-upload-initialiser"
-    And we specify the event fixture "message_not_automated"
+    And we specify the event fixture "not_automated"
     And we envoke the lambda
     Then no warning or error logs should occur
 
   Scenario: Successfully Complete
     Given the lambda "opendata-v4-upload-initialiser"
-    And we specify the event fixture "message_valid"
+    And we specify the event fixture "valid"
     And we envoke the lambda
     Then a log line should contain
       | level    | text                            |

@@ -51,9 +51,13 @@ class MockLambdaClient:
         # getting returned.
 
         # Any test thats meant to fail before you client.invoke() go here - they dont need a mocked response
+        # but they DO need to exist so we can throw an error where someone typos or forgets to setup
+        # the fixture, otherwise errors of that kind will get obfiscated (i.e this allows the "else" clause).
         if initial_event_fixture in [
             "opendata-transform-decision-lambda/events/no_bucket_name.json",
             "opendata-transform-decision-lambda/events/no_object_key.json",
+            "opendata-v4-upload-initialiser/events/no_bucket_name.json",
+            "opendata-v4-upload-initialiser/events/not_automated.json",
         ]:
             self.mock_responses = []
 
@@ -61,6 +65,23 @@ class MockLambdaClient:
         # If your lambda test invokes once - provide a list of 1
         # If it invokes twice - provide a list of 2
         # etc
+
+        elif (
+            initial_event_fixture
+            == "opendata-v4-upload-initialiser/events/valid.json"
+        ):
+            self.mock_responses = [
+                payload(
+                    {
+                        "body": {
+                            "metadata": {},
+                            "dimension_data": {},
+                            "usage_notes": {},
+                        },
+                        "statusCode": 200,
+                    }
+                )
+            ]
         elif (
             initial_event_fixture
             == "opendata-transform-decision-lambda/events/failed_response_details_lambda.json"
@@ -119,6 +140,8 @@ class MockLambdaClient:
 
 class MockS3Client:
     def __init__(self):
+        # Get the name of the start json fixture from an env var. i.e what our test passes in as "event"
+        # Example: features/fixtures/opendata-transform-decision-lambda/events/no_bucket_name.json
         initial_event_fixture = os.environ.get("EVENT_FIXTURE", None)
         if not initial_event_fixture:
             raise ValueError(
@@ -127,6 +150,13 @@ class MockS3Client:
         self.initial_event_fixture = initial_event_fixture
 
     def download_fileobj(self, bucket: str, zip_file: str, f: FileIO):
+        """
+        When the test container is built we mount the contents of
+        /features/fixtures/zips as /tmp/zips.
+
+        So our mock "download" is just copy a fixture zip to the COMMON_ZIP_PATH,
+        where COMMON_ZIP_PATH is where the lambdas expect the data.
+        """
 
         if (
             self.initial_event_fixture
@@ -134,7 +164,26 @@ class MockS3Client:
         ):
             shutil.copy("/tmp/zips/valid1.zip", COMMON_ZIP_PATH)
 
+        else:
+            raise ValueError(
+                f'You are calling MockS3Client.download_fileobj() but no responsers for the starting event "{self.initial_event_fixture}" have been defined.'
+            )
+
     def head_object(self, Bucket=None, Key=None):
-        assert Bucket, "Mock s3 method required both the Bucket and Key kwargs"
-        assert Key, "Mock s3 method required both the Bucket and Key kwargs"
-        yield next(self.mock_responses)
+
+        if (
+            self.initial_event_fixture
+            == "opendata-v4-upload-initialiser/events/not_automated.json"
+        ):
+            return {}  # if its not automated, our metadata is not set on the object
+
+        elif (
+            self.initial_event_fixture
+            == "opendata-v4-upload-initialiser/events/valid.json"
+        ):
+            return {"Metadata": {"source": {"bucket": "", "zip_file": "fake_zip.zip"}}}
+
+        else:
+            raise ValueError(
+                f'You are calling MockS3Client.head_object() but no responsers for the starting event "{self.initial_event_fixture}" have been defined.'
+            )
