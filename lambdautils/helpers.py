@@ -3,18 +3,16 @@ from genericpath import exists
 import json
 import logging
 import os
-
 from os import listdir
 from os.path import isfile, join
-
-from typing import List, Tuple
 import zipfile
 
 from jsonschema import validate, ValidationError
-from schemas import manifest_schema
+
+from .schemas import manifest_schema
+
 
 COMMON_ZIP_PATH = "/tmp/source.zip"
-
 
 class InvocationResult(Enum):
     """

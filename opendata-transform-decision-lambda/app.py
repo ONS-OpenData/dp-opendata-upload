@@ -1,34 +1,18 @@
 import json
 
-import boto3
-
-# When we build the container the imports from ../common will be exist locally to the function.
-# This catch is just to enable intellisense while developing.
-# When we're closer to done, the contents of /common will be a pip installable package so
-# this nasty catch can go.
-try:
-    from ..common.helpers import (
-        log_as_incomplete,
-        log_as_complete,
-        TransformType,
-        json_validate,
-    )
-    from ..common.mocking import get_lambda_client
-    from ..common.schemas import (
-        bucket_notification_source_event_schema,
-        transform_details_schema,
-        source_bucket_schema,
-        transform_evocation_payload_schema,
-    )
-except ImportError:
-    from helpers import log_as_incomplete, log_as_complete, TransformType, json_validate
-    from mocking import get_lambda_client
-    from schemas import (
-        bucket_notification_source_event_schema,
-        transform_details_schema,
-        source_bucket_schema,
-        transform_evocation_payload_schema,
-    )
+from lambdautils.helpers import (
+    log_as_incomplete,
+    log_as_complete,
+    TransformType,
+    json_validate,
+)
+from lambdautils.mocking import get_lambda_client
+from lambdautils.schemas import (
+    bucket_notification_source_event_schema,
+    transform_details_schema,
+    source_bucket_schema,
+    transform_evocation_payload_schema,
+)
 
 
 def handler(event, context):

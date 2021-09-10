@@ -7,7 +7,7 @@ Infrastructure diagram: [click me](https://github.com/ONS-OpenData/dp-opendata-u
 
 All lambdas run on an image created from the `Dockerfile` with variations in files informing each lambda (see lambda sub directories). Python packages per lambda are handled by the relevant `requirements.txt` files.
 
-The `./common` directory contains python code that is passed into _all_ lambdas functions to factor out repetition.
+The `./lambdautils` directory contains python code that is passed into _all_ lambdas functions to factor out repetition.
 
 The `./features` directory contains BDD tests and supporting code.
 
@@ -25,7 +25,7 @@ Example of running a specific scenario `pipenv run behave -n "<scenario name>"`
 
 Where more than one scenario has the same name, combine both techiques.
 
-These tests are _not_ end to end tests. When running tests the boto3 lambda client is replaced with a MockClient that returns hard coded responses. Each feature will pass or fail independently of the others.
+These tests are _not_ end to end tests. When running tests the boto3 clients are replaced with MockClient(s) that returns hard coded responses. Each feature will pass or fail independently of the others.
 
 _Note: a bit slow for now as container (re)builds on each scenario rather than each feature. Fixable but not urgent._
 
@@ -67,3 +67,14 @@ You can fix (b) with the makefile, example:
 ```
 make lambda=opendata-transform-decision-lambda register
 ```
+
+
+### Dependencies
+
+The contents of `./lambdautils` is copied into each lambda function as its image is built. It is **not** pip installed (pip install from a git repo requires git, adding git to the lightweight aws lambda image is problematic).
+
+However, `./lambdautils` _is_ setup as an installable package, this is just so that the `pipenv` venv can find it for intellij hinting/dot notaton while developing.
+
+The take away is add what you need, but any packages you utilise in `./lambdautils` need to (a) be included in the aws base image (like boto3) or (b) be added to the `requirements.txt` for the lambda(s) in question.
+
+To update the virtual env, also add your new package to `install_requires` in `setup.py` the  run `pipenv install`.

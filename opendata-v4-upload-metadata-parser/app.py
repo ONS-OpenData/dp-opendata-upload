@@ -1,36 +1,15 @@
 import json
-import os
-import logging
-import zipfile
 
-import boto3
-
-# When we build the container the imports from ../common will be exist locally to the function.
-# This catch is just to enable intellisense while developing.
-# When we're closer to done, the contents of /common will be a pip installable package so
-# this nasty catch can go.
-try:
-    from ..common.helpers import (
-        log_as_incomplete,
-        log_as_complete,
-        json_validate,
-        Source,
-        MetadataHandler,
-        COMMON_ZIP_PATH,
-    )
-    from ..common.mocking import get_s3_client
-    from ..common.schemas import source_bucket_schema, valid_metadata_schema
-except ImportError:
-    from helpers import (
-        log_as_incomplete,
-        log_as_complete,
-        json_validate,
-        Source,
-        MetadataHandler,
-        COMMON_ZIP_PATH,
-    )
-    from mocking import get_s3_client
-    from schemas import source_bucket_schema, valid_metadata_schema
+from lambdautils.helpers import (
+    log_as_incomplete,
+    log_as_complete,
+    json_validate,
+    Source,
+    MetadataHandler,
+    COMMON_ZIP_PATH,
+)
+from lambdautils.mocking import get_s3_client
+from lambdautils.schemas import source_bucket_schema, valid_metadata_schema
 
 
 def handler(event, context):

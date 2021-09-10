@@ -5,7 +5,7 @@ import shutil
 
 import boto3
 
-from helpers import COMMON_ZIP_PATH
+from .helpers import COMMON_ZIP_PATH
 
 
 def payload(payload_dict: dict):

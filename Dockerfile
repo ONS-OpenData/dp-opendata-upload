@@ -5,7 +5,7 @@ ARG LAMBDA_NAME
 
 # Copy function code and common code
 COPY ./${LAMBDA_NAME}/* ${LAMBDA_TASK_ROOT}/
-COPY ./common/* ${LAMBDA_TASK_ROOT}/
+COPY ./lambdautils/* /${LAMBDA_TASK_ROOT}/lambdautils/
 
 # Install the function's dependencies using file requirements.txt
 COPY ./${LAMBDA_NAME}/requirements.txt .
