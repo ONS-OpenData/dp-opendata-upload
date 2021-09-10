@@ -56,7 +56,7 @@ class MetadataHandler(Enum):
 class Source:
     """
     Wrapper for all operations relating to the source zip file.
-    Put it all here so we can pull out all the preetative code from
+    Put it all here so we can pull out all the repetative code from
     the lambdas.
     """
 
