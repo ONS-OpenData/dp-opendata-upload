@@ -39,7 +39,9 @@ def handler(event, context):
             f"Failed to get response from opendata-metadata-validator, with status code {payload_dict['statusCode']}"
         )
 
-    is_valid = strtobool(json.loads(payload_dict["body"])["valid"])
+    body_dict = json.loads(payload_dict["body"])
+    is_valid = body_dict["valid"]
+    assert isinstance(is_valid, bool)
     if not is_valid:
         log_as_incomplete()
         raise Exception("Aborting for invalid metadata.")

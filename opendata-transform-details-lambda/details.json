@@ -1,14 +1,14 @@
 {
     "dataset1": {
         "transform": "<some github repo with the transform in>",
-        "transform_type": "short",
+        "transform_type": "none",
         "dataset_id": "<dataset_1_id>",
         "edition_id": "<edition_name>",
         "collection_name": "<collection_name>"
       },
     "dataset2": {
         "transform": "<some github repo with the transform in>",
-        "transform_type": "short",
+        "transform_type": "none",
         "dataset_id": "<dataset_2_id>",
         "edition_id": "<edition_name>",
         "collection_name": "<collection_name>"

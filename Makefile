@@ -1,5 +1,5 @@
 
-# Build, tag, then push a lamda image
+# Build, tag, push and deploy/update a lamda via an updated image
 .PHONY: build
 build:
 	@# Confirm we've been given the name of a lambda via a kwarg
@@ -15,6 +15,7 @@ build:
 	docker build --build-arg LAMBDA_NAME=$(lambda) -t $(lambda) . --no-cache
 	docker tag  $(lambda):latest ${AWS_ECR_URL}/$(lambda):latest
 	docker push ${AWS_ECR_URL}/$(lambda):latest
+	aws lambda update-function-code --function-name $(lambda) --image-uri ${AWS_ECR_URL}/$(lambda):latest
 
 # Register a lambda name with the aws ecr
 .PHONY: register

@@ -32,14 +32,14 @@ _Note: a bit slow for now as container (re)builds on each scenario rather than e
 
 ## Deployment
 
-You'll only need to do the setup bit once.
+You'll have to rerun the following setup line from time to time if your token expires, it's pretty painless.
 
 
 ### Setup
 
 First, you'll need to have the ecr url exported via an environment variable `AWS_ECR_URL`.
 
-You then need to register your docker client with your aws cli (just once) via:
+You register your docker client with your aws cli via:
 
 ```
 aws ecr get-login-password --region <REGION> | docker login --username AWS --password-stdin $AWS_ECR_URL
@@ -55,18 +55,7 @@ To update the lambda image on aws to match whats defined in this repo, pass the 
 make lambda=opendata-transform-decision-lambda
 ```
 
-From there (for now) you'll need to go into the lambda console and update the lambda in quesion to use that new image (use browse).
-
-If it tells you the ecr entry doesnt exist yet then:
-
-* (a) You've typo'd it.
-* (b) Its the first time we've tried to push an image for this lambda so we need to create an entry on the container registry.
-
-You can fix (b) with the makefile, example:
-
-```
-make lambda=opendata-transform-decision-lambda register
-```
+That'll update the registered image to match whatever you've got locally and deploy it as a lambda.
 
 
 ### Dependencies
@@ -77,4 +66,4 @@ However, `./lambdautils` _is_ setup as an installable package, this is just so t
 
 The take away is add what you need, but any packages you utilise in `./lambdautils` need to (a) be included in the aws base image (like boto3) or (b) be added to the `requirements.txt` for the lambda(s) in question.
 
-To update the virtual env, also add your new package to `install_requires` in `setup.py` the  run `pipenv install`.
+To update the virtual env (for intellij etc) also add your new package to `install_requires` in `setup.py` then run `pipenv install`.
