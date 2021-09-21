@@ -7,12 +7,11 @@ from lambdautils.helpers import (
     json_validate,
     COMMON_ZIP_PATH,
     V4_BUCKET_NAME,
-    Source
+    Source,
 )
 from lambdautils.mocking import get_s3_client
-from lambdautils.schemas import (
-    transform_evocation_payload_schema
-)
+from lambdautils.schemas import transform_evocation_payload_schema
+
 
 def handler(event, context):
     """
@@ -34,23 +33,22 @@ def handler(event, context):
 
     if len(datafiles) != 1 or not str(datafiles[0]).endswith(".csv"):
         log_as_incomplete()
-        raise ValueError(f'Zip file must contain exactly one data file of csv format. Got {datafiles}')
+        raise ValueError(
+            f"Zip file must contain exactly one data file of csv format. Got {datafiles}"
+        )
     v4_path = datafiles[0]
 
     # Uploads the v4 to the v4 upload bucket with an attribute linking
-    # it back to its original source (and metadata) 
+    # it back to its original source (and metadata)
     extra_args = {
-        "Metadata": {
-            "source": json.dumps({"bucket": bucket, "zip_file": zip_file}
-            )
-        }
-    } # 'x-amz-meta-' is added by the api
+        "Metadata": {"source": json.dumps({"bucket": bucket, "zip_file": zip_file})}
+    }  # 'x-amz-meta-' is added by the api
 
     # for S3 object_name use file_name without /tmp/
     # removing the '.' from file name - need to confirm this
     # timestamp for uniqueness
-    timestamp = datetime.datetime.now() # to be ued as unique resumableIdentifier
-    timestamp = datetime.datetime.strftime(timestamp, '%d%m%y%H%M%S')
+    timestamp = datetime.datetime.now()  # to be ued as unique resumableIdentifier
+    timestamp = datetime.datetime.strftime(timestamp, "%d%m%y%H%M%S")
     object_name = f"{timestamp}-{v4_path.split('/')[-1].replace('.', '')}"
 
     # Upload the file

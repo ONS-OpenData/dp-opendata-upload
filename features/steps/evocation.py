@@ -38,11 +38,7 @@ def start_rie(context, lambda_name: str, event_fixture: Path):
     from docker import DockerClient
     from docker.client import DockerClient
 
-    client: DockerClient = (
-        docker.from_env()
-    )  # DockerClient(base_url='unix://var/run/docker.sock', version='auto', tls=True)
-
-    # docker.from_env()
+    client: DockerClient = docker.from_env()
 
     client.images.build(
         path=str(this_dir.parent.parent.resolve()),
@@ -50,11 +46,15 @@ def start_rie(context, lambda_name: str, event_fixture: Path):
         tag="lambda/testing",
         rm=True,
     )
+
+    context.env_vars["IS_TEST"] = True
+    context.env_vars["EVENT_FIXTURE"] = event_fixture
+
     test_container: Container = client.containers.run(
         "lambda/testing",
         ports={8080: 9000, 3333: 3333},
         publish_all_ports=True,
-        environment={"IS_TEST": True, "EVENT_FIXTURE": event_fixture},
+        environment=context.env_vars,
         detach=True,
         network_mode="bridge",
         volumes={Path(fixture_dir / "zips"): {"bind": "/tmp/zips/", "mode": "rw"}},
@@ -153,3 +153,10 @@ def step_impl(context):
     Got:
     {r_json_as_str}
     """
+
+
+@given("set the environment varibles")
+def step_impl(context):
+    context.env_vars = {}
+    for row in context.table:
+        context.env_vars[row["key"]] = row["value"]

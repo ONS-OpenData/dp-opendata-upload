@@ -1,3 +1,4 @@
+import logging
 import json
 
 from lambdautils.helpers import (
@@ -21,6 +22,9 @@ def handler(event, context):
 
     # Validate that the event matches the schema "source_bucket_schema"
     json_validate(event, source_bucket_schema)
+
+    if isinstance(event, str):
+        event = json.loads(event)
     bucket = event["bucket"]
     zip_file = event["zip_file"]
 

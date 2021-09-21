@@ -254,3 +254,38 @@ manifest_schema = {
     },
     "required": ["metadata", "metadata_handler"],
 }
+
+# The final dict thats passed along to the poller
+# and on to the finaliser
+finaliser_payload_schema = {
+    "properties": {
+        "instance_id": {"type": "string"},
+        "metadata": {
+            "type": "object",
+            "properties": {
+                "metadata": {"type": "object"},
+                "dimension_data": {"type": "object"},
+                "usage_notes": {"type": "object"},
+            },
+            "required": ["metadata", "dimension_data", "usage_notes"],
+        },
+    },
+    "transform_details": {
+        "type": "object",
+        "properties": {
+            "transform": {"type": "string"},
+            "transform_type": {"type": "string", "pattern": "none|short|long"},
+            "dataset_id": {"type": "string"},
+            "edition_id": {"type": "string"},
+            "collection_name": {"type": "string"},
+        },
+        "required": [
+            "transform",
+            "transform_type",
+            "dataset_id",
+            "edition_id",
+            "collection_name",
+        ],
+    },
+    "required": ["instance_id", "metadata", "transform_details"],
+}

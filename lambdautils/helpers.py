@@ -15,6 +15,7 @@ from .schemas import manifest_schema
 COMMON_ZIP_PATH = "/tmp/source.zip"
 V4_BUCKET_NAME = "ons-dp-develop-publishing-uploaded-datasets"
 
+
 class InvocationResult(Enum):
     """
     Enum for logging our the result of running the lambda

@@ -53,7 +53,7 @@ def handler(event, context):
         raise NotImplementedError("Not looking at long running transforms yet.")
 
     elif transform_type == TransformType.none.value:
-        logging.info(f'Transform type is {transform_type}')
+        logging.info(f"Transform type is {transform_type}")
 
         transform_details["source"] = source_dict
         del transform_details["transform_type"]  # no longer needed

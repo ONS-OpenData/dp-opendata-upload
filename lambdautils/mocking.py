@@ -6,6 +6,42 @@ import shutil
 import boto3
 
 from .helpers import COMMON_ZIP_PATH
+from .clients import ZebedeeClient, RecipeApiClient, DatasetApiClient
+
+
+def get_s3_client():
+    """When testing return a mock client for faking interactions with boto3 s3"""
+    if os.environ.get("IS_TEST", None):
+        return MockS3Client()
+    return boto3.client("s3")
+
+
+def get_lambda_client():
+    """When testing return a mock client for faking interactions with boto3 lambda"""
+    if os.environ.get("IS_TEST", None):
+        return MockLambdaClient()
+    return boto3.client("lambda")
+
+
+def get_zebedee_client():
+    """When testing return a mock client for faking interactions with zebedee"""
+    if os.environ.get("IS_TEST", None):
+        return MockZebedeeClient()
+    return ZebedeeClient()
+
+
+def get_recipe_api_client():
+    """When testing return a mock client for faking interactions with the recipe api"""
+    if os.environ.get("IS_TEST", None):
+        return MockRecipeApiClient()
+    return RecipeApiClient()
+
+
+def get_dataset_api_client():
+    """When testing return a mock client for faking interactions with the dataset api"""
+    if os.environ.get("IS_TEST", None):
+        return MockDatasetApiClient()
+    return DatasetApiClient()
 
 
 def payload(payload_dict: dict):
@@ -23,18 +59,75 @@ def payload(payload_dict: dict):
     }
 
 
-def get_s3_client():
-    """When testing return a mock client for interacting with boto3 s3"""
-    if os.environ.get("IS_TEST", None):
-        return MockS3Client()
-    return boto3.client("s3")
+class MockZebedeeClient:
+    def __init__(self):
+
+        msg = "ZebedeeClient required the exported environment variable: {}"
+
+        for key in ["ZEBEDEE_EMAIL", "ZEBEDEE_PASSWORD", "ZEBEDEE_URL"]:
+            if not os.environ.get(key, None):
+                raise AssertionError(msg.format(key))
+
+    def get_access_token(self):
+        return "12345678"
 
 
-def get_lambda_client():
-    """When testing return a mock client for interacting with boto3 lambda"""
-    if os.environ.get("IS_TEST", None):
-        return MockLambdaClient()
-    return boto3.client("lambda")
+class MockDatasetApiClient:
+    def __init__(self):
+        initial_event_fixture = os.environ.get("EVENT_FIXTURE", None).strip()
+        if not initial_event_fixture:
+            raise ValueError(
+                'Aborting. Test container needs to have an envionment variable of "EVENT_FIXTURE".'
+            )
+        self.initial_event_fixture = initial_event_fixture
+
+        assert os.environ.get("DATASET_API_URL", False)
+        assert os.environ.get("S3_V4_BUCKET_URL", False)
+
+    def post_new_job(self, access_token: str, v4_file: str, recipe: dict):
+        if (
+            self.initial_event_fixture
+            == "opendata-v4-upload-initialiser/events/valid.json"
+        ):
+            return "fake_job_id", "fake_instance_id"
+
+        else:
+            raise ValueError(
+                f'You are calling MockRecipeApiClient.get_recipe() but no responses for the starting event "{self.initial_event_fixture}" have been defined.'
+            )
+
+    def update_state_of_job(self, access_token: str, job_id: str):
+        if self.initial_event_fixture == "opendata-v4-upload-initialiser/events/valid.json":
+            pass # its either pass or error
+
+        else:
+            raise ValueError(
+                f'You are calling MockRecipeApiClient.update_state_of_job() but no responses for the starting event "{self.initial_event_fixture}" have been defined.'
+            )
+
+class MockRecipeApiClient:
+    def __init__(self):
+        initial_event_fixture = os.environ.get("EVENT_FIXTURE", None).strip()
+        if not initial_event_fixture:
+            raise ValueError(
+                'Aborting. Test container needs to have an envionment variable of "EVENT_FIXTURE".'
+            )
+        self.initial_event_fixture = initial_event_fixture
+
+        assert os.environ.get("RECIPE_API_URL", False)
+
+    def get_recipe(self, access_token: str, dataset_id: str):
+
+        if (
+            self.initial_event_fixture
+            == "opendata-v4-upload-initialiser/events/valid.json"
+        ):
+            return {"fake_recipe": "USE SOMETHING A TAD MORE REPRESENTATIVE"}
+
+        else:
+            raise ValueError(
+                f'You are calling MockRecipeApiClient.get_recipe() but no responses for the starting event "{self.initial_event_fixture}" have been defined.'
+            )
 
 
 class MockLambdaClient:
@@ -42,6 +135,7 @@ class MockLambdaClient:
         # Get the name of the start json fixture from an env var. i.e what our test passes in as "event"
         # Example: features/fixtures/opendata-transform-decision-lambda/events/no_bucket_name.json
         initial_event_fixture = os.environ.get("EVENT_FIXTURE", None).strip()
+        self.initial_event_fixture = initial_event_fixture
         if not initial_event_fixture:
             raise ValueError(
                 'Aborting. Test container needs to have an envionment variable of "EVENT_FIXTURE".'
@@ -67,8 +161,7 @@ class MockLambdaClient:
         # etc
 
         elif (
-            initial_event_fixture
-            == "opendata-v4-upload-initialiser/events/valid.json"
+            initial_event_fixture == "opendata-v4-upload-initialiser/events/valid.json"
         ):
             self.mock_responses = [
                 payload(
@@ -80,7 +173,27 @@ class MockLambdaClient:
                         },
                         "statusCode": 200,
                     }
-                )
+                ),
+                payload(
+                    {
+                        "body": {
+                            "transform_details": {
+                                "transform": "",
+                                "collection_id": "",
+                                "transform_type": "none",
+                                "dataset_id": "",
+                                "edition_id": "",
+                                "collection_name": "",
+                            }
+                        },
+                        "statusCode": 200,
+                    }
+                ),
+                payload(
+                    {
+                        "statusCode": 200,
+                    }
+                ),
             ]
         elif (
             initial_event_fixture
@@ -114,7 +227,7 @@ class MockLambdaClient:
             == "opendata-transform-details-lambda/events/valid.json"
         ):
             self.mock_responses = [
-                payload({"body": {"valid": "True"}, "statusCode": 200})
+                payload({"body": {"valid": True}, "statusCode": 200})
             ]
 
         elif (
@@ -125,7 +238,7 @@ class MockLambdaClient:
 
         else:
             raise ValueError(
-                f'You are calling MockLambdaClient but no responsers for the starting event "{initial_event_fixture}" have been defined.'
+                f'You are calling MockLambdaClient but no responses for the starting event "{initial_event_fixture}" have been defined.'
             )
 
     def invoke(self, FunctionName: str, InvocationType: str, Payload: str):
@@ -134,7 +247,7 @@ class MockLambdaClient:
             return mock_response
         except IndexError as err:
             raise IndexError(
-                "Could not find a mock, have you defined one self.mock_responses for _every_ invoke in this test?"
+                f"Could not find a mock lambda response for {self.initial_event_fixture}, have you defined one self.mock_responses for _every_ invoke in this test?"
             ) from err
 
 

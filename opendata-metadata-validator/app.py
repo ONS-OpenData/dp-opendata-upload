@@ -2,6 +2,7 @@ import json
 
 from lambdautils.helpers import log_as_complete
 
+
 def handler(event, context):
     """
     Principle lambda event handler.
@@ -26,5 +27,3 @@ def handler(event, context):
         "statusCode": 200,
         "body": json.dumps({"valid": True}),
     }
-
-
