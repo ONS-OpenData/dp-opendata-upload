@@ -14,7 +14,7 @@ import docker
 from docker import DockerClient
 from docker.models.containers import Container
 
-this_dir: Path = Path(os.path.dirname(os.path.realpath(__file__)))
+this_dir = Path(os.path.dirname(os.path.realpath(__file__)))
 fixture_dir = Path(this_dir.parent / "fixtures")
 
 if not fixture_dir.exists():
@@ -35,9 +35,6 @@ def start_rie(context, lambda_name: str, event_fixture: Path):
     """
     Build and run image using aws lambda Runtime Interface Emulator
     """
-    from docker import DockerClient
-    from docker.client import DockerClient
-
     client: DockerClient = docker.from_env()
 
     client.images.build(
@@ -46,6 +43,10 @@ def start_rie(context, lambda_name: str, event_fixture: Path):
         tag="lambda/testing",
         rm=True,
     )
+
+    # don't break when no clients that need env vars are present
+    if not hasattr(context, "env_vars"):
+        context.env_vars = {}
 
     context.env_vars["IS_TEST"] = True
     context.env_vars["EVENT_FIXTURE"] = event_fixture
