@@ -12,5 +12,12 @@
         "dataset_id": "<dataset_2_id>",
         "edition_id": "<edition_name>",
         "collection_name": "<collection_name>"
-      }
+      },
+    "suicides-in-the-uk": {
+      "transform": "ALREADY TRANSFORMED",
+      "transform_type": "none",
+      "dataset_id": "suicides-in-the-uk",
+      "edition_id": "2020",
+      "collection_name": "CMD Suicides"
+    }
     }

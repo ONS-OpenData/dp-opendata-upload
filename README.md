@@ -45,6 +45,12 @@ You register your docker client with your aws cli via:
 aws ecr get-login-password --region <REGION> | docker login --username AWS --password-stdin $AWS_ECR_URL
 ```
 
+**or** via the make file
+
+```
+make region=<REGION> auth
+```
+
 _Note: I'm not putting the region on github, just look in the console._
 
 ### Usage

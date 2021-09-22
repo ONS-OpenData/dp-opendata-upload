@@ -27,3 +27,17 @@ register:
 	fi
 	aws ecr create-repository --repository-name $(lambda) --image-scanning-configuration scanOnPush=false --image-tag-mutability MUTABLE
 
+# Aurthenticate docker client
+.PHONY: auth
+auth:
+	@# Confirm we have an env var with the ecr url in it
+	@if [[ -z "${AWS_ECR_URL}" ]]; then \
+		echo "You need to set the envionment variable AWS_ECR_URL."; \
+		exit 1; \
+	fi
+	@# Confirm we've been given the name of a lambda via a kwarg
+	@if [ -z "$(region)" ]; then \
+		echo "No aws region provided."; \
+		exit 1; \
+	fi
+	aws ecr get-login-password --region $(region) | docker login --username AWS --password-stdin $(AWS_ECR_URL)
