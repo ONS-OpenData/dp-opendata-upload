@@ -30,18 +30,18 @@ def get_zebedee_client():
     return ZebedeeClient()
 
 
-def get_recipe_api_client():
+def get_recipe_api_client(access_token: str):
     """When testing return a mock client for faking interactions with the recipe api"""
     if os.environ.get("IS_TEST", None):
         return MockRecipeApiClient()
-    return RecipeApiClient()
+    return RecipeApiClient(access_token)
 
 
-def get_dataset_api_client():
+def get_dataset_api_client(access_token: str):
     """When testing return a mock client for faking interactions with the dataset api"""
     if os.environ.get("IS_TEST", None):
         return MockDatasetApiClient()
-    return DatasetApiClient()
+    return DatasetApiClient(access_token)
 
 
 def payload(payload_dict: dict):
@@ -64,12 +64,9 @@ class MockZebedeeClient:
 
         msg = "ZebedeeClient required the exported environment variable: {}"
 
-        for key in ["ZEBEDEE_EMAIL", "ZEBEDEE_PASSWORD", "ZEBEDEE_URL"]:
+        for key in ["ZEBEDEE_URL"]:
             if not os.environ.get(key, None):
                 raise AssertionError(msg.format(key))
-
-    def get_access_token(self):
-        return "12345678"
 
 
 class MockDatasetApiClient:

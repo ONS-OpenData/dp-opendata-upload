@@ -1,5 +1,6 @@
 import logging
 import json
+import os
 
 from lambdautils.helpers import log_as_incomplete, log_as_complete, json_validate
 from lambdautils.mocking import (
@@ -23,11 +24,14 @@ def handler(event, context):
     Principle lambda event handler.
     """
 
+    access_token = os.environ.get("ZEBEDEE_ACCESS_TOKEN", None)
+    if not access_token:
+        raise ValueError('Aborting. Need a zebedee access token.')
+
     client = get_lambda_client()
     s3 = get_s3_client()
-    zebedee = get_zebedee_client()
-    recipe_api = get_recipe_api_client()
-    dataset_api = get_dataset_api_client()
+    recipe_api = get_recipe_api_client(access_token)
+    dataset_api = get_dataset_api_client(access_token)
 
     json_validate(event, bucket_notification_v4_event_schema)
     records = event.get("Records", None)
@@ -41,7 +45,7 @@ def handler(event, context):
     object_response = s3.head_object(Bucket=bucket, Key=v4_file)
 
     try:
-        source_dict = object_response["Metadata"]["source"]
+        source_dict = json.loads(object_response["Metadata"]["source"])
         json_validate(source_dict, source_bucket_schema)
     except KeyError:
         logging.warning("Not an automated upload, ending process.")
@@ -81,23 +85,27 @@ def handler(event, context):
     json_validate(transform_details, transform_details_schema)
 
     # Use the apis to initialise the upload
-    access_token = zebedee.get_access_token()
-    recipe = recipe_api.get_recipe(access_token, transform_details["dataset_id"])
-    job_id, instance_id = dataset_api.post_new_job(access_token, v4_file, recipe)
-    dataset_api.update_state_of_job(access_token, job_id)
+    recipe = recipe_api.get_recipe(transform_details["dataset_id"])
+
+    job_id, instance_id = dataset_api.post_new_job(v4_file, recipe)
+    dataset_api.update_state_of_job(job_id)
+
+    logging.warning(job_id)
+    logging.warning(instance_id)
+    raise NotImplementedError
 
     # Start polling
-    finaliser_payload = {
-        "instance_id": instance_id,
-        "metadata": metadata_dict,
-        "transform_details": transform_details,
-    }
-    json_validate(finaliser_payload, finaliser_payload_schema)
+    #finaliser_payload = {
+    #    "instance_id": instance_id,
+    #    "metadata": metadata_dict,
+    #    "transform_details": transform_details,
+    #}
+    #json_validate(finaliser_payload, finaliser_payload_schema)
 
     # Start poller
-    client.invoke(
-        FunctionName="opendata-v4-upload-poller",
-        InvocationType="Event",
-        Payload=json.dumps(finaliser_payload),
-    )
-    log_as_complete()
+    #client.invoke(
+    #    FunctionName="opendata-v4-upload-poller",
+    #    InvocationType="Event",
+    #    Payload=json.dumps(finaliser_payload),
+    #)
+    #log_as_complete()

@@ -1,5 +1,7 @@
 from distutils.util import strtobool
 import json
+from pathlib import Path
+import os
 
 from lambdautils.helpers import (
     log_as_incomplete,
@@ -10,19 +12,22 @@ from lambdautils.helpers import (
 from lambdautils.mocking import get_lambda_client
 from lambdautils.schemas import source_bucket_schema, transform_details_schema
 
+import logging
+
+this_dir = Path(os.path.dirname(os.path.realpath(__file__)))
 
 def handler(event, context):
 
     client = get_lambda_client()
-
     json_validate(event, source_bucket_schema)
 
     zip_file = event.get("zip_file")
     dataset_name = dataset_name_from_zip_name(zip_file)
 
     # Get transform details from details.json
-    with open("details.json") as f:
+    with open(Path(this_dir / "details.json")) as f:
         data = json.load(f)
+
     transform_details_dict = data.get(dataset_name)
     json_validate(transform_details_dict, transform_details_schema)
 
