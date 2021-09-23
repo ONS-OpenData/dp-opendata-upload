@@ -80,7 +80,16 @@ class MockDatasetApiClient:
 
         assert os.environ.get("DATASET_API_URL", False)
 
-        if (
+        # from this point - mocks for self.upload_complete()
+        # no mock needed
+        if self.initial_event_fixture in [
+            "opendata-v4-upload-initialiser/events/not_automated.json",
+            "opendata-v4-upload-initialiser/events/no_bucket_name.json",
+            "opendata-v4-upload-initialiser/events/valid.json",
+            "opendata-v4-upload-poller/events/bad-starting-event.json"
+        ]:
+            return None # no mock needed
+        elif (
             self.initial_event_fixture
             == "opendata-v4-upload-poller/events/valid.json"
         ):
@@ -101,13 +110,12 @@ class MockDatasetApiClient:
             ][mocked_calls_made]
             mocked_calls_made += 1
             os.environ["MOCK_DATASET_API_CALLS"] = str(mocked_calls_made)
-
         else:
             raise ValueError(
                 f'You are calling MockRecipeApiClient.upload_complete() but no responses for the starting event "{self.initial_event_fixture}" have been defined.'
             )
 
-    def post_new_job(self, access_token: str, v4_file: str, recipe: dict):
+    def post_new_job(self, v4_file: str, recipe: dict):
         if (
             self.initial_event_fixture
             == "opendata-v4-upload-initialiser/events/valid.json"
@@ -119,7 +127,7 @@ class MockDatasetApiClient:
                 f'You are calling MockRecipeApiClient.get_recipe() but no responses for the starting event "{self.initial_event_fixture}" have been defined.'
             )
 
-    def update_state_of_job(self, access_token: str, job_id: str):
+    def update_state_of_job(self, job_id: str):
         assert os.environ.get("S3_V4_BUCKET_URL", False)
         if self.initial_event_fixture == "opendata-v4-upload-initialiser/events/valid.json":
             pass # its either pass or error
@@ -145,7 +153,7 @@ class MockRecipeApiClient:
 
         assert os.environ.get("RECIPE_API_URL", False)
 
-    def get_recipe(self, access_token: str, dataset_id: str):
+    def get_recipe(self, dataset_id: str):
 
         if (
             self.initial_event_fixture
@@ -330,13 +338,13 @@ class MockS3Client:
             self.initial_event_fixture
             == "opendata-v4-upload-initialiser/events/not_automated.json"
         ):
-            return {}  # if its not automated, our metadata is not set on the object
+            return json.dumps({})  # if its not automated, our metadata is not set on the object
 
         elif (
             self.initial_event_fixture
             == "opendata-v4-upload-initialiser/events/valid.json"
         ):
-            return {"Metadata": {"source": {"bucket": "", "zip_file": "fake_zip.zip"}}}
+            return json.dumps({"Metadata": {"source": {"bucket": "", "zip_file": "fake_zip.zip"}}})
 
         else:
             raise ValueError(

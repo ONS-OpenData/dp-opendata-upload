@@ -8,7 +8,7 @@ Feature: Transform details lambda
   Scenario: Successfully Complete
     Given the lambda "opendata-transform-details-lambda"
     And we specify the event fixture "valid"
-    And we envoke the lambda
+    And we invoke the lambda
     Then a log line should contain
       | level    | text                            |
       | WARNING  | lambda completed operation      |
@@ -16,7 +16,7 @@ Feature: Transform details lambda
   Scenario: Receive a 500 response from the metadata validator lambda
     Given the lambda "opendata-transform-details-lambda"
     And we specify the event fixture "failed_response_metadata_validator"
-    And we envoke the lambda
+    And we invoke the lambda
     Then a log line should contain
       | level    | text                                                                                     |
       | ERROR    | Exception: Failed to get response from opendata-metadata-validator, with status code 500 |

@@ -47,7 +47,7 @@ def handler(event, context):
     object_response = s3.head_object(Bucket=bucket, Key=v4_file)
 
     try:
-        source_dict = json.loads(object_response["Metadata"]["source"])
+        source_dict = json.loads(object_response)["Metadata"]["source"]
         json_validate(source_dict, source_bucket_schema)
     except KeyError:
         logging.warning("Not an automated upload, ending process.")
@@ -76,6 +76,7 @@ def handler(event, context):
         Payload=json.dumps(source_dict),
     )
 
+
     payload_dict = json.load(r["Payload"])
     if payload_dict["statusCode"] != 200:
         log_as_incomplete()
@@ -94,7 +95,7 @@ def handler(event, context):
 
     logging.warning(job_id)
     logging.warning(instance_id)
-    raise NotImplementedError  # We got tbis far before hitting the networking hurdle,
+    raise NotImplementedError  # We got this far before hitting the networking hurdle,
     # When its done and if we're getting to this error AND we're getting back the expected job_id and instance_id then
     # you can remove the above logging and error and continue uncommenting/trying the below code.
 

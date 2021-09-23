@@ -25,9 +25,9 @@ Feature: Upload poller
       | DATASET_API_URL         |  http://im-the-dataset-api |
     And we invoke the lambda
     Then a log line should contain
-      | level    | text                                                 |
-      | ERROR    | Lambda cannot run with env var DELAY_BETWEEN_CHECKS  |
-      | WARNING  | lambda failed to complete operation                  |
+      | level    | text                                                    |
+      | ERROR    | Lambda cannot run without env var DELAY_BETWEEN_CHECKS  |
+      | WARNING  | lambda failed to complete operation                     |
 
   Scenario: Poller completes one iteration successfully
     Given the lambda "opendata-v4-upload-poller"

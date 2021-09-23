@@ -20,7 +20,10 @@ def handler(event, context):
 
     access_token = os.environ.get("ZEBEDEE_ACCESS_TOKEN", None)
     if not access_token:
-        raise ValueError("Aborting. Need a zebedee access token.")
+        log_as_incomplete()
+        msg = "Aborting. Need a zebedee access token."
+        logging.error(msg)
+        raise ValueError(msg)
 
     client = get_lambda_client()
     dataset_api = get_dataset_api_client(access_token)
@@ -31,20 +34,21 @@ def handler(event, context):
     maximum_polling_time = os.environ.get("MAXIMUM_POLLING_TIME", None)
     if not maximum_polling_time:
         log_as_incomplete()
-        raise Exception("Lambda cannot run without env var MAXIMUM_POLLING_TIME")
+        msg = "Lambda cannot run without env var MAXIMUM_POLLING_TIME"
+        logging.error(msg)
+        raise Exception(msg)
 
     delay_between_checks = os.environ.get("DELAY_BETWEEN_CHECKS", None)
     if not delay_between_checks:
         log_as_incomplete()
-        raise Exception("Lambda cannot run without env var DELAY_BETWEEN_CHECKS")
+        msg = "Lambda cannot run without env var DELAY_BETWEEN_CHECKS"
+        logging.error(msg)
+        raise Exception(msg)
 
-    start_time = datetime.datetime.now().isoformat()
+    start_time = datetime.datetime.now()
 
     while True:
-        complete = dataset_api.upload_complete(event["instance_id"])
-        logging.warning(f'complete: {complete}')
-
-        if complete:
+        if dataset_api.upload_complete(event["instance_id"]):
 
                 # Call next lambda, finish, dont start another one of these
                 client.invoke(
@@ -54,7 +58,7 @@ def handler(event, context):
                 )
                 log_as_complete()
                 break
-        elif datetime.datetime.now() > (datetime.datetime.fromisoformat(start_time) + datetime.timedelta(0, int(maximum_polling_time))):
+        elif datetime.datetime.now() > (start_time + datetime.timedelta(0, int(maximum_polling_time))):
             client.invoke(
                         FunctionName="opendata-v4-upload-poller",
                         InvocationType="Event",
