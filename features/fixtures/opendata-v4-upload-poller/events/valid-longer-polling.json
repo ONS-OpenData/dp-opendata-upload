@@ -1,0 +1,15 @@
+{
+    "instance_id": "1234",
+    "metadata": {
+        "metadata": {},
+        "dimension_data": {},
+        "usage_notes": {}
+    },
+    "dataset_details": {
+        "transform": "",
+        "transform_type": "",
+        "dataset_id": "",
+        "edition_id": "",
+        "collection_name": ""
+    }
+}

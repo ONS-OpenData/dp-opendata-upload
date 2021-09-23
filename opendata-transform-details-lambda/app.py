@@ -16,6 +16,7 @@ import logging
 
 this_dir = Path(os.path.dirname(os.path.realpath(__file__)))
 
+
 def handler(event, context):
 
     client = get_lambda_client()

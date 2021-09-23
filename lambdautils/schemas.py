@@ -263,29 +263,29 @@ finaliser_payload_schema = {
         "metadata": {
             "type": "object",
             "properties": {
-            "metadata": {"type": "object"},
-            "dimension_data": {"type": "object"},
-            "usage_notes": {"type": "object"},
+                "metadata": {"type": "object"},
+                "dimension_data": {"type": "object"},
+                "usage_notes": {"type": "object"},
             },
             "required": ["metadata", "dimension_data", "usage_notes"],
-            }
         },
-        "transform_details": {
+        "dataset_details": {
             "type": "object",
             "properties": {
-        "transform": {"type": "string"},
-        "transform_type": {"type": "string", "pattern": "none|short|long"},
-        "dataset_id": {"type": "string"},
-        "edition_id": {"type": "string"},
-        "collection_name": {"type": "string"},
+                "transform": {"type": "string"},
+                "transform_type": {"type": "string"},
+                "dataset_id": {"type": "string"},
+                "edition_id": {"type": "string"},
+                "collection_name": {"type": "string"},
+            },
+            "required": [
+                "transform",
+                "transform_type",
+                "dataset_id",
+                "edition_id",
+                "collection_name",
+            ],
         },
-        "required": [
-            "transform",
-            "transform_type",
-            "dataset_id",
-            "edition_id",
-            "collection_name",
-        ]
     },
-    "required": ["instance_id", "metadata", "transform_details"],
+    "required": ["instance_id", "metadata", "dataset_details"],
 }

@@ -24,12 +24,16 @@ def handler(event, context):
 
     access_token = os.environ.get("ZEBEDEE_ACCESS_TOKEN", None)
     if not access_token:
-        raise ValueError('Aborting. Need a zebedee access token.')
+        raise ValueError("Aborting. Need a zebedee access token.")
+
+    s3_url = os.environ.get("S3_V4_BUCKET_URL", None)
+    if not s3_url:
+        raise ValueError("Aborting. Need a s3 bucket url.")
 
     client = get_lambda_client()
     s3 = get_s3_client()
     recipe_api = get_recipe_api_client(access_token)
-    dataset_api = get_dataset_api_client(access_token)
+    dataset_api = get_dataset_api_client(access_token, s3_url=s3_url)
 
     json_validate(event, bucket_notification_v4_event_schema)
     records = event.get("Records", None)
@@ -95,17 +99,17 @@ def handler(event, context):
     # you can remove the above logging and error and continue uncommenting/trying the below code.
 
     # Start polling
-    #finaliser_payload = {
+    # finaliser_payload = {
     #    "instance_id": instance_id,
     #    "metadata": metadata_dict,
     #    "transform_details": transform_details,
-    #}
-    #json_validate(finaliser_payload, finaliser_payload_schema)
+    # }
+    # json_validate(finaliser_payload, finaliser_payload_schema)
 
     # Start poller
-    #client.invoke(
+    # client.invoke(
     #    FunctionName="opendata-v4-upload-poller",
     #    InvocationType="Event",
     #    Payload=json.dumps(finaliser_payload),
-    #)
-    #log_as_complete()
+    # )
+    # log_as_complete()

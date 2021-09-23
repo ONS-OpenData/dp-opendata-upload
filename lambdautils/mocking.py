@@ -37,11 +37,11 @@ def get_recipe_api_client(access_token: str):
     return RecipeApiClient(access_token)
 
 
-def get_dataset_api_client(access_token: str):
+def get_dataset_api_client(access_token: str, s3_url: str = None):
     """When testing return a mock client for faking interactions with the dataset api"""
     if os.environ.get("IS_TEST", None):
         return MockDatasetApiClient()
-    return DatasetApiClient(access_token)
+    return DatasetApiClient(access_token, s3_url=s3_url)
 
 
 def payload(payload_dict: dict):
@@ -79,7 +79,33 @@ class MockDatasetApiClient:
         self.initial_event_fixture = initial_event_fixture
 
         assert os.environ.get("DATASET_API_URL", False)
-        assert os.environ.get("S3_V4_BUCKET_URL", False)
+
+        if (
+            self.initial_event_fixture
+            == "opendata-v4-upload-poller/events/valid.json"
+        ):
+            self.upload_complete_mocks = [True]
+
+        elif (
+            self.initial_event_fixture
+            == "opendata-v4-upload-poller/events/valid-longer-polling.json"
+        ):
+            # So this call represents calling the lambda multiple times
+            # Which means reinitialising this client multiple times.
+            # We're going to use an env var to differentiate which invocation it is.
+            mocked_calls_made = int(os.environ.get("MOCK_DATASET_API_CALLS", "0"))
+            self.upload_complete_mocks = [
+                [False, False, False, False],
+                [False, False, False, False],
+                [True]
+            ][mocked_calls_made]
+            mocked_calls_made += 1
+            os.environ["MOCK_DATASET_API_CALLS"] = str(mocked_calls_made)
+
+        else:
+            raise ValueError(
+                f'You are calling MockRecipeApiClient.upload_complete() but no responses for the starting event "{self.initial_event_fixture}" have been defined.'
+            )
 
     def post_new_job(self, access_token: str, v4_file: str, recipe: dict):
         if (
@@ -94,6 +120,7 @@ class MockDatasetApiClient:
             )
 
     def update_state_of_job(self, access_token: str, job_id: str):
+        assert os.environ.get("S3_V4_BUCKET_URL", False)
         if self.initial_event_fixture == "opendata-v4-upload-initialiser/events/valid.json":
             pass # its either pass or error
 
@@ -101,6 +128,11 @@ class MockDatasetApiClient:
             raise ValueError(
                 f'You are calling MockRecipeApiClient.update_state_of_job() but no responses for the starting event "{self.initial_event_fixture}" have been defined.'
             )
+
+    def upload_complete(self, instance_id):
+        return self.upload_complete_mocks.pop(0)
+
+
 
 class MockRecipeApiClient:
     def __init__(self):
@@ -149,6 +181,7 @@ class MockLambdaClient:
             "opendata-transform-decision-lambda/events/no_object_key.json",
             "opendata-v4-upload-initialiser/events/no_bucket_name.json",
             "opendata-v4-upload-initialiser/events/not_automated.json",
+            "opendata-v4-upload-poller/events/bad-starting-event.json"
         ]:
             self.mock_responses = []
 
@@ -197,6 +230,18 @@ class MockLambdaClient:
             == "opendata-transform-decision-lambda/events/failed_response_details_lambda.json"
         ):
             self.mock_responses = [payload({"statusCode": 500})]
+        elif (
+            initial_event_fixture
+            == "opendata-v4-upload-poller/events/valid.json"
+        ):
+            self.mock_responses = [payload({"statusCode": 200})]
+        elif (
+            initial_event_fixture == "opendata-v4-upload-poller/events/valid-longer-polling.json"):
+                self.mock_responses = [
+                    payload({"statusCode": 200}),
+                    payload({"statusCode": 200}),
+                    payload({"statusCode": 200})
+                    ]
         elif (
             initial_event_fixture
             == "opendata-transform-decision-lambda/events/valid.json"

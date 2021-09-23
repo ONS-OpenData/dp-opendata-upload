@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import Tuple
 
 import requests
@@ -94,7 +95,7 @@ class RecipeApiClient:
 
 
 class DatasetApiClient:
-    def __init__(self, access_token: str):
+    def __init__(self, access_token: str, s3_url: str = None):
         self.url = os.environ.get("DATASET_API_URL", None)
         if not self.url:
             raise ValueError(
@@ -103,11 +104,7 @@ class DatasetApiClient:
         self.access_token = access_token
 
         # s3 url not including file name, i.e "https://s3-<REGION>.amazonaws.com/<BUCKET-NAME>"
-        self.s3_v4_bucket_url = os.environ.get("S3_V4_BUCKET_URL", None)
-        if not self.s3_v4_bucket_url:
-            raise ValueError(
-                "The s3 v4 bucket url url must be exported as an environment variable"
-            )
+        self.s3_v4_bucket_url = s3_url
 
     def get_all_dataset_api_jobs(self) -> (dict):
         """
@@ -152,13 +149,17 @@ class DatasetApiClient:
         instance_id = dataset_jobs_dict[-1]["links"]["instances"][0]["id"]
         return latest_id, recipe_id, instance_id
 
-    def post_new_job(
-        self, v4_file, recipe: dict
-    ) -> (Tuple[str, str]):
+    def post_new_job(self, v4_file, recipe: dict) -> (Tuple[str, str]):
         """
         Creates a new job in the /dataset/jobs API
         Job is created in state 'created'
         """
+        if not self.s3_v4_bucket_url:
+            log_as_incomplete()
+            raise Exception(
+                "To call .post_new_job(), you need to instantiate the dataset api client with an S3 url env var."
+            )
+
         headers = {"Authorization": self.access_token}
         s3_url = f"{self.s3_v4_bucket_url}/{v4_file}"
 
@@ -227,3 +228,50 @@ class DatasetApiClient:
         else:
             log_as_incomplete()
             raise Exception("Job does not have a v4 file!")
+
+    def upload_complete(self, instance_id: str) -> (bool):
+        """
+        Checks state of an instance
+        Returns Bool
+        """
+        instance_id_url = f"{self.url}/instances/{instance_id}"
+        headers = {"Authorization": self.access_token}
+
+        r = requests.get(instance_id_url, headers=headers)
+        if r.status_code != 200:
+            raise Exception(
+                "{} raised a {} error".format(instance_id_url, r.status_code)
+            )
+
+        dataset_instance_dict = r.json()
+        # TODO - schema validate the json we're getting back
+
+        job_state = dataset_instance_dict["state"]
+
+        if job_state == "created":
+            log_as_incomplete()
+            raise Exception(
+                'State of instance is "{job_state}", import process has not been triggered'
+            )
+
+        elif job_state == "submitted":
+            total_inserted_observations = dataset_instance_dict["import_tasks"][
+                "import_observations"
+            ]["total_inserted_observations"]
+            try:
+                total_observations = dataset_instance_dict["total_observations"]
+            except:
+                error_message = dataset_instance_dict["events"][0]["message"]
+                log_as_incomplete()
+                raise Exception(error_message)
+            logging.info("Import process is running")
+            logging.info(
+                "{} out of {} observations have been imported".format(
+                    total_inserted_observations, total_observations
+                )
+            )
+
+        elif job_state == "completed":
+            return True
+
+        return False

@@ -75,6 +75,7 @@ def step_impl(context, lambda_name):
     Specify which lambda we are testing
     """
     context.lambda_name = lambda_name
+    context.invocation_count = 0
 
 
 @given('we specify the event fixture "{sample_fixture}"')
@@ -89,12 +90,29 @@ def step_impl(context, sample_fixture):
     context.event_fixture = event_fixture
 
 
-@given("we envoke the lambda")
+@given("we invoke the lambda")
 def step_impl(context):
     """
     Post the dict as json to the emulated lambda
     """
+    context.invocation_count += 1
     start_rie(context, context.lambda_name, context.event_fixture)
+    r: Response = requests.post(
+        "http://localhost:9000/2015-03-31/functions/function/invocations",
+        json=context.sample,
+    )
+    assert (
+        r.ok
+    ), f"Post to lambda failed, response {r.text} with status code {r.status_code}"
+    context.response = r
+
+# Note: same as invoke but we dont start the container (its already runnning)
+@given("we reinvoke the lambda")
+def step_impl(context):
+    """
+    Post the dict as json to the emulated lambda
+    """
+    context.invocation_count += 1
     r: Response = requests.post(
         "http://localhost:9000/2015-03-31/functions/function/invocations",
         json=context.sample,
@@ -140,6 +158,18 @@ def step_impl(context):
             f"Found at least one instance of [WARNING] or [ERROR] logs"
         )
 
+@then(u'the logs should contain "{count}" instances of message containing "{looked_for_text}"')
+def step_impl(context, count, looked_for_text):
+    log_lines = context.test_container.logs(timestamps=True).decode("utf-8").split("\n")
+    found_count = 0
+    for log_line in log_lines:
+        if looked_for_text in log_line:
+            found_count += 1
+    count = int(count)
+    if count != found_count:
+        output_container_logs(context)
+        raise AssertionError(f'Expecting {count} instances of message {looked_for_text}, got {found_count}')
+
 
 @then("the response returned should match")
 def step_impl(context):
@@ -161,3 +191,8 @@ def step_impl(context):
     context.env_vars = {}
     for row in context.table:
         context.env_vars[row["key"]] = row["value"]
+
+
+@then('the lambda was invoked "{count}" times')
+def step_impl(context, count):
+    assert int(count) == context.invocation_count
