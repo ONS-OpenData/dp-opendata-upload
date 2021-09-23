@@ -47,7 +47,7 @@ def handler(event, context):
     # for S3 object_name use file_name without /tmp/
     # removing the '.' from file name - need to confirm this
     # timestamp for uniqueness
-    timestamp = datetime.datetime.now()  # to be ued as unique resumableIdentifier
+    timestamp = datetime.datetime.now()
     timestamp = datetime.datetime.strftime(timestamp, "%d%m%y%H%M%S")
     object_name = f"{timestamp}-{v4_path.split('/')[-1].replace('.', '')}"
 

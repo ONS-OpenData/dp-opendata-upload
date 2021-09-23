@@ -7,7 +7,6 @@ from lambdautils.mocking import (
     get_dataset_api_client,
     get_s3_client,
     get_lambda_client,
-    get_zebedee_client,
     get_recipe_api_client,
 )
 from lambdautils.schemas import (
@@ -15,7 +14,6 @@ from lambdautils.schemas import (
     bucket_notification_v4_event_schema,
     valid_metadata_schema,
     transform_details_schema,
-    finaliser_payload_schema,
 )
 
 
@@ -92,7 +90,9 @@ def handler(event, context):
 
     logging.warning(job_id)
     logging.warning(instance_id)
-    raise NotImplementedError
+    raise NotImplementedError  # We got tbis far before hitting the networking hurdle,
+    # When its done and if we're getting to this error AND we're getting back the expected job_id and instance_id then
+    # you can remove the above logging and error and continue uncommenting/trying the below code.
 
     # Start polling
     #finaliser_payload = {
