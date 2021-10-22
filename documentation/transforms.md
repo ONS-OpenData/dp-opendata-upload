@@ -21,7 +21,7 @@ The function is not called within `main.py` but will be called from `opendata-tr
 import pandas, glob
 import databaker # if needed
 
-def transfrom(location):
+def transform(location):
   # input file is an xlsx
   source_files = glob.glob(location + '*.xlsx')
   source_file = source_files[0]
