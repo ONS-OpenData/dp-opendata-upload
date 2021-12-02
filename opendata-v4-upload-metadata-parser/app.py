@@ -15,7 +15,10 @@ from lambdautils.schemas import source_bucket_schema, valid_metadata_schema
 
 def handler(event, context):
     """
-    Principle lambda event handler.
+    Triggered by opendata-v4-upload-initialiser
+    Gets the name of metadata file and metadata structure from manifest.json 
+    Transforms metadata if needed
+    Returns metadata
     """
 
     s3 = get_s3_client()
@@ -40,9 +43,21 @@ def handler(event, context):
         with open(source.get_metadata_file_path()) as f:
             metadata_dict = json.load(f)
             json_validate(metadata_dict, valid_metadata_schema)
+        """
+    elif metadata_handler == MetadataHandler.some_other_structure.value:
+        with open(source.get_metadata_file_path()) as f:
+            other_structure_metadata_dict = json.load(f)
+            # do the transform of the metadata here, want it in the 
+            # valid_metadata_schema format
+            metadata_dict = function(other_structure_metadata_dict)
+            json_validate(metadata_dict, valid_metadata_schema)
+        """
     else:
         log_as_incomplete()
         raise ValueError(f"Unknown metadata handler {metadata_handler}")
 
     log_as_complete()
-    return {"statusCode": 200, "body": json.dumps(metadata_dict)}
+    return {
+        "statusCode": 200, 
+        "body": json.dumps(metadata_dict)
+        }
