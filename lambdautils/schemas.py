@@ -273,14 +273,12 @@ finaliser_payload_schema = {
             "type": "object",
             "properties": {
                 "transform": {"type": "string"},
-                "transform_type": {"type": "string"},
                 "dataset_id": {"type": "string"},
                 "edition_id": {"type": "string"},
                 "collection_name": {"type": "string"},
             },
             "required": [
                 "transform",
-                "transform_type",
                 "dataset_id",
                 "edition_id",
                 "collection_name",

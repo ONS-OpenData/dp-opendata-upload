@@ -2,7 +2,7 @@ import os
 import logging
 from typing import Tuple
 
-import requests
+import requests, datetime
 
 from .helpers import log_as_incomplete
 
@@ -12,13 +12,94 @@ class ZebedeeClient:
     Class for interacting with the Zebedee restful api.
     """
 
-    def __init__(self):
+    def __init__(self, access_token: str):
 
         url = os.environ.get("ZEBEDEE_URL", None)
         if not url:
             raise ValueError("Zebedee url must be exported as an environment variable")
 
         self.url = url
+        self.access_token = access_token
+
+    def create_collection(self, collection_name: str):
+        """
+        Creates a new collection in florence
+        """
+
+        self.collection_name = collection_name
+        headers = {"Authorization": self.access_token}
+        r = requests.post(self.url + "/collection", headers=headers, json={"name": self.collection_name})
+        # doesn't return a 200 when completed
+        # so use chek_collection_exists
+        self.check_collection_exists()
+
+    def check_collection_exists(self):
+        """
+        Checks to see if a collection exists - used to check a collection is created
+        """
+
+        collection_name_for_url = self.collection_name.replace(' ', '').lower()
+        headers = {"Authorization": self.access_token}
+
+        r = requests.get(self.url + '/collection/' + collection_name_for_url, headers=headers)
+        if r.status_code != 200:
+            raise Exception(f"Collection '{self.collection_name}' not created - returned a {r.status_code} error")
+
+    def get_collection_id(self):
+        """
+        Gets collection_id from newly created collection
+        """
+
+        headers = {'X-Florence-Token':self.access_token}
+        collection_name_for_url = self.collection_name.replace(' ', '').lower()
+
+        r = requests.get(f"{self.url}/collection/{collection_name_for_url}", headers=headers)
+
+        if r.status_code == 200:
+            collection_dict = r.json()
+            collection_id = collection_dict['id']
+            return collection_id
+        else:
+            raise Exception(f"Collection '{self.collection_name}' not found - returned a {r.status_code} error")
+
+    def add_dataset_to_collection(self, collection_id: str, dataset_id: str):
+        '''
+        Adds dataset landing page to collection
+        '''
+
+        headers = {'X-Florence-Token':self.access_token}
+        dataset_to_collection_url = f"{self.url}/collections/{collection_id}/datasets/{dataset_id}"
+
+        r = requests.put(dataset_to_collection_url, headers=headers, json={"state": "Complete"})
+        if r.status_code == 200:
+            print(f"{dataset_id} - Dataset landing page added to collection")
+        else:
+            raise Exception(f"{dataset_id} - Dataset landing page not added to collection - returned a {r.status_code} error")
+        
+    def add_dataset_version_to_collection(
+        self, 
+        collection_id: str, 
+        dataset_id: str, 
+        edition: str, 
+        version_number: str
+        ):
+        '''
+        Adds dataset version to collection
+        '''
+
+        headers = {'X-Florence-Token':self.access_token}
+        dataset_version_to_collection_url = f"{self.url}/collections/{collection_id}/datasets/{dataset_id}/editions/{edition}/versions/{version_number}"
+        
+        r = requests.put(dataset_version_to_collection_url, headers=headers, json={"state": "Complete"})
+        if r.status_code == 200:
+            print(f"{dataset_id} - Dataset version '{version_number}' added to collection")
+        else:
+            raise Exception(f"{dataset_id} - Dataset version '{version_number}' not added to collection - returned a {r.status_code} error")
+
+
+
+
+    
 
 
 class RecipeApiClient:
@@ -190,7 +271,7 @@ class DatasetApiClient:
             return job_id, job_instance_id
 
     def get_job_info(self, job_id: str):
-        dataset_jobs_id_url = f"{self.url}jobs/{job_id}"
+        dataset_jobs_id_url = f"{self.url}/jobs/{job_id}"
         headers = {"Authorization": self.access_token}
 
         r = requests.get(dataset_jobs_id_url, headers=headers)
@@ -207,7 +288,7 @@ class DatasetApiClient:
         once submitted import process will begin
         """
 
-        updating_state_of_job_url = f"{self.url}jobs/{job_id}"
+        updating_state_of_job_url = f"{self.url}/jobs/{job_id}"
         headers = {"Authorization": self.access_token}
 
         updating_state_of_job_json = {}
@@ -275,3 +356,132 @@ class DatasetApiClient:
             return True
 
         return False
+
+    def update_metadata(self, dataset_id: str, metadata_dict: dict):
+        """
+        Updates general metadata for a dataset
+        """
+
+        metadata = metadata_dict["metadata"]
+        assert type(metadata) == dict, "metadata['metadata'] must be a dict"
+
+        headers = {'X-Florence-Token':self.access_token}
+        dataset_url = f"{self.url}/datasets/{dataset_id}"
+        
+        r = requests.put(dataset_url, headers=headers, json=metadata)
+        if r.status_code != 200:
+            print(f"Metadata not updated, returned a {r.status_code} error")
+        else:
+            print('Metadata updated')
+
+    def create_new_version_from_instance(self, instance_id: str, edition: str):
+        '''
+        Changes state of an instance to edition-confirmed so that it is assigned a version number
+        Requires edition name & release date ("2021-07-08T00:00:00.000Z")
+        Will currently just use current date as release date
+        '''
+
+        headers = {'X-Florence-Token':self.access_token}
+        instance_url = f"{self.url}/instances/{instance_id}"
+
+        current_date = datetime.datetime.now()
+        release_date = datetime.datetime.strftime(current_date, '%Y-%m-%dT00:00:00.000Z')
+
+        r = requests.put(instance_url, headers=headers, json={
+            'edition':edition, 
+            'state':'edition-confirmed', 
+            'release_date':release_date
+            }
+        )
+
+        if r.status_code == 200:
+            print('Instance state changed to edition-confirmed')
+        else:
+            raise Exception(f"Instance state not changed - returned a {r.status_code} error")
+
+    def get_version_number(self, dataset_id: str, instance_id: str):
+        '''
+        Gets version number of instance ready to be published from /datasets/instances/{instance_id}
+        Only when dataset is in a collection or edition-confirmed state
+        Used to find the right version for usage notes or to add version to collection
+        Returns version number as string
+        '''   
+
+        headers = {'X-Florence-Token':self.access_token}
+        instance_url = f"{self.url}/instances/{instance_id}"
+
+        r = requests.get(instance_url, headers=headers)
+        if r.status_code != 200:
+            raise Exception(f"/datasets/{dataset_id}/instances/{instance_id} returned a {r.status_code} error")
+            
+        instance_dict = r.json()
+        version_number = instance_dict['version']
+        
+        # check to make sure is the right dataset
+        assert instance_dict['links']['dataset']['id'] == dataset_id, f"{instance_dict['links']['dataset']['id']} does not match {dataset_id}"
+        # check to make sure version number is a number
+        assert version_number == int(version_number), f"Version number should be a number - {version_number}"
+        
+        return str(version_number)
+
+    def update_dimensions(self, dataset_id: str, instance_id: str, metadata_dict: dict):
+        '''
+        Used to update dimension labels and add descriptions
+        '''
+        dimension_dict = metadata_dict['dimension_data']
+        assert type(dimension_dict) == dict, 'dimension_dict must be a dict'
+        
+        headers = {'X-Florence-Token':self.access_token}
+        instance_url = f"{self.url}/instances/{instance_id}"
+        
+        for dimension in dimension_dict.keys():
+            new_dimension_info = {}
+            for key in dimension_dict[dimension].keys():
+                new_dimension_info[key] = dimension_dict[dimension][key]
+            
+            # making the request for each dimension separately
+            dimension_url = f"{instance_url}/dimensions/{dimension}"
+            r = requests.put(dimension_url, headers=headers, json=new_dimension_info)
+            
+            if r.status_code != 200:
+                print(f"Dimension info not updated for {dimension}, returned a {r.status_code} error")
+            else:
+                print(f"Dimension updated - {dimension}")
+
+    def update_usage_notes(
+        self, 
+        dataset_id: str, 
+        version_number: str, 
+        metadata_dict: dict, 
+        edition: str
+        ):
+        '''
+        Adds usage notes to a version - only unpublished
+        /datasets/{id}/editions/{edition}/versions/{version}
+        usage_notes is a list of dict(s)
+        Can do multiple at once and upload will replace any existing ones
+        '''        
+
+        if 'usage_notes' not in metadata_dict.keys():
+            return 'No usage notes to add'
+    
+        usage_notes = metadata_dict['usage_notes']
+        
+        assert type(usage_notes) == list, 'usage notes must be in a list'
+        for item in usage_notes:
+            for key in item.keys():
+                assert key in ('note', 'title'), 'usage note can only have a note and/or a title'
+            
+        usage_notes_to_add = {}
+        usage_notes_to_add['usage_notes'] = usage_notes
+        
+        headers = {'X-Florence-Token':self.access_token}
+        version_url = f"{self.url}/datasets/{dataset_id}/editions/{edition}/versions/{version_number}"
+        
+        r = requests.put(version_url, headers=headers, json=usage_notes_to_add)
+        if r.status_code == 200:
+            print('Usage notes added')
+        else:
+            print(f"Usage notes not added, returned a {r.status_code} error")
+            
+
