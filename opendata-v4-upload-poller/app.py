@@ -15,7 +15,11 @@ from lambdautils.mocking import get_dataset_api_client, get_lambda_client
 
 def handler(event, context):
     """
-    Principle lambda event handler.
+    Triggered by opendata-v4-upload-initialiser
+    Gets polling details
+    Checks state of instance upload
+    When finished invokes opendata-v4-upload-finaliser
+    Invokes itself and closes current when time limit exceeded
     """
 
     access_token = os.environ.get("ZEBEDEE_ACCESS_TOKEN", None)
