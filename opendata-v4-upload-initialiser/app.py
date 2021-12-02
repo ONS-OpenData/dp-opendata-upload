@@ -1,6 +1,7 @@
 import logging
 import json
 import os
+import time
 
 from lambdautils.helpers import log_as_incomplete, log_as_complete, json_validate
 from lambdautils.mocking import (
@@ -14,12 +15,18 @@ from lambdautils.schemas import (
     bucket_notification_v4_event_schema,
     valid_metadata_schema,
     transform_details_schema,
+    transform_evocation_payload_schema,
+    finaliser_payload_schema
 )
 
 
 def handler(event, context):
     """
-    Principle lambda event handler.
+    Triggered by data being upload to secon s3 bucket (by one of transform lambdas)
+    Gets transform details from s3 object (the v4)
+    Invokes opendata-v4-upload-metadata-parser
+    Posts new job, updates state of job
+    Invokes opendata-v4-upload-poller
     """
 
     access_token = os.environ.get("ZEBEDEE_ACCESS_TOKEN", None)
@@ -47,7 +54,11 @@ def handler(event, context):
     object_response = s3.head_object(Bucket=bucket, Key=v4_file)
 
     try:
-        source_dict = json.loads(object_response)["Metadata"]["source"]
+        #source_dict = json.loads(object_response)["Metadata"]["source"]
+        #json_validate(source_dict, source_bucket_schema)
+        transform_details = json.loads(object_response["Metadata"]["transform_details"])
+        json_validate(transform_details, transform_evocation_payload_schema)
+        source_dict = transform_details["source"]
         json_validate(source_dict, source_bucket_schema)
     except KeyError:
         logging.warning("Not an automated upload, ending process.")
@@ -69,22 +80,7 @@ def handler(event, context):
     metadata_dict = json.loads(payload_dict["body"])
     json_validate(metadata_dict, valid_metadata_schema)
 
-    # Get transform details from the transform details lambda
-    r = client.invoke(
-        FunctionName="opendata-transform-details-lambda",
-        InvocationType="RequestResponse",
-        Payload=json.dumps(source_dict),
-    )
-
-
-    payload_dict = json.load(r["Payload"])
-    if payload_dict["statusCode"] != 200:
-        log_as_incomplete()
-        raise Exception(
-            f"Failed to get response from opendata-transform-details-lambda, with status code {payload_dict['statusCode']}"
-        )
-    payload_body = json.loads(payload_dict["body"])
-    transform_details = payload_body.get("transform_details")
+    del transform_details["source"]
     json_validate(transform_details, transform_details_schema)
 
     # Use the apis to initialise the upload
@@ -94,23 +90,28 @@ def handler(event, context):
     dataset_api.update_state_of_job(job_id)
 
     logging.warning(job_id)
-    logging.warning(instance_id)
+    logging.warning(instance_id) 
+    
     raise NotImplementedError  # We got this far before hitting the networking hurdle,
     # When its done and if we're getting to this error AND we're getting back the expected job_id and instance_id then
     # you can remove the above logging and error and continue uncommenting/trying the below code.
 
+    # gives cmd apps a chance to 'kick off' import process, observations do not import
+    # straight away and would cause the poller to KeyError
+    time.sleep(60)
+
     # Start polling
-    # finaliser_payload = {
-    #    "instance_id": instance_id,
-    #    "metadata": metadata_dict,
-    #    "transform_details": transform_details,
-    # }
-    # json_validate(finaliser_payload, finaliser_payload_schema)
+    finaliser_payload = {
+        "instance_id": instance_id,
+        "metadata": metadata_dict,
+        "dataset_details": transform_details,
+    }
+    json_validate(finaliser_payload, finaliser_payload_schema) 
 
     # Start poller
-    # client.invoke(
-    #    FunctionName="opendata-v4-upload-poller",
-    #    InvocationType="Event",
-    #    Payload=json.dumps(finaliser_payload),
-    # )
-    # log_as_complete()
+    client.invoke(
+       FunctionName="opendata-v4-upload-poller",
+       InvocationType="Event",
+       Payload=json.dumps(finaliser_payload),
+    )
+    log_as_complete()
