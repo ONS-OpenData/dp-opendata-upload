@@ -46,11 +46,16 @@ def handler(event, context):
     # drop out early if its not an automated upload.
     object_response = s3.head_object(Bucket=bucket, Key=v4_file)
 
+    # TODO - this should be first, not point instantiating clients (above) we don't need to use
     try:
         source_dict = json.loads(object_response)["Metadata"]["source"]
         json_validate(source_dict, source_bucket_schema)
     except KeyError:
-        logging.warning("Not an automated upload, ending process.")
+        if "Metadata" not in source_dict.keys():
+            msg = 'No "Metadata" key on object.'
+        elif "source" not in source_dict["Metadata"].keys():
+            msg = f'No "source" subkey in "Metadata" field of object. Got {source_dict.keys()}'
+        logging.warning('Not an automated upload, ending.\n' + msg)
         return
 
     # Fetch the metadata the v4 will need from the metadata parser
