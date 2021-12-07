@@ -19,12 +19,14 @@ def handler(event, context):
     """
 
     s3 = get_s3_client()
+    print(type(s3))
 
     # Validate that the event matches the schema "transform_evocation_payload_schema"
     json_validate(event, transform_evocation_payload_schema)
     bucket = event["source"]["bucket"]
     zip_file = event["source"]["zip_file"]
 
+    print(json.dumps({"bucket": bucket, "zip_file": zip_file}, indent=2))
     with open(COMMON_ZIP_PATH, "wb") as f:
         s3.download_fileobj(bucket, zip_file, f)
 
