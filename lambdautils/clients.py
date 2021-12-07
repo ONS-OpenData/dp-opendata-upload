@@ -41,12 +41,11 @@ class RecipeApiClient:
     def get_all_recipes(self) -> (dict):
         """
         Gets all recipes from the recipe api.
-
-        token is an access token as returned by ZebedeeClient().get_access_token()
         """
         if self.recipes_cache:
             return self.recipes_cache
 
+        print(f'Get all recipes from recipe api with: "{self.url}?limit=1000\n".')
         headers = {"Authorization": self.access_token}
         r = requests.get(self.url + "?limit=1000", headers=headers)
 

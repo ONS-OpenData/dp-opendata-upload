@@ -22,6 +22,8 @@ def handler(event, context):
     client = get_lambda_client()
     json_validate(event, source_bucket_schema)
 
+    if isinstance(event, str):
+        event = json.loads(event)
     zip_file = event.get("zip_file")
     dataset_name = dataset_name_from_zip_name(zip_file)
 

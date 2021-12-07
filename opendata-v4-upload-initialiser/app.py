@@ -14,6 +14,7 @@ from lambdautils.schemas import (
     bucket_notification_v4_event_schema,
     valid_metadata_schema,
     transform_details_schema,
+    finaliser_payload_schema
 )
 
 
@@ -44,19 +45,21 @@ def handler(event, context):
 
     # get source bucket information from s3 object attribute,
     # drop out early if its not an automated upload.
-    object_response = s3.head_object(Bucket=bucket, Key=v4_file)
+    object_response_dict = s3.head_object(Bucket=bucket, Key=v4_file)
 
     # TODO - this should be first, not point instantiating clients (above) we don't need to use
     try:
-        source_dict = json.loads(object_response)["Metadata"]["source"]
+        source_dict = object_response_dict["Metadata"]["source"]
         json_validate(source_dict, source_bucket_schema)
+        print('Validated: source_bucket_schema')
     except KeyError:
-        if "Metadata" not in source_dict.keys():
+        if "Metadata" not in object_response_dict:
             msg = 'No "Metadata" key on object.'
-        elif "source" not in source_dict["Metadata"].keys():
-            msg = f'No "source" subkey in "Metadata" field of object. Got {source_dict.keys()}'
+        elif "source" not in object_response_dict["Metadata"]:
+            msg = f'No "source" subkey in "Metadata" field of object. Got {object_response_dict.keys()}'
         logging.warning('Not an automated upload, ending.\n' + msg)
         return
+    print('Confirmed as automated upload.')
 
     # Fetch the metadata the v4 will need from the metadata parser
     r = client.invoke(
@@ -73,6 +76,7 @@ def handler(event, context):
         )
     metadata_dict = json.loads(payload_dict["body"])
     json_validate(metadata_dict, valid_metadata_schema)
+    print('Validated: valid_metadata_schema')
 
     # Get transform details from the transform details lambda
     r = client.invoke(
@@ -80,7 +84,6 @@ def handler(event, context):
         InvocationType="RequestResponse",
         Payload=json.dumps(source_dict),
     )
-
 
     payload_dict = json.load(r["Payload"])
     if payload_dict["statusCode"] != 200:
@@ -91,31 +94,29 @@ def handler(event, context):
     payload_body = json.loads(payload_dict["body"])
     transform_details = payload_body.get("transform_details")
     json_validate(transform_details, transform_details_schema)
+    print('Validated: transform_details_schema')
 
     # Use the apis to initialise the upload
     recipe = recipe_api.get_recipe(transform_details["dataset_id"])
+    print("Recipe got")
 
     job_id, instance_id = dataset_api.post_new_job(v4_file, recipe)
     dataset_api.update_state_of_job(job_id)
-
-    logging.warning(job_id)
-    logging.warning(instance_id)
-    raise NotImplementedError  # We got this far before hitting the networking hurdle,
-    # When its done and if we're getting to this error AND we're getting back the expected job_id and instance_id then
-    # you can remove the above logging and error and continue uncommenting/trying the below code.
+    print("Job state updated")
 
     # Start polling
-    # finaliser_payload = {
-    #    "instance_id": instance_id,
-    #    "metadata": metadata_dict,
-    #    "transform_details": transform_details,
-    # }
-    # json_validate(finaliser_payload, finaliser_payload_schema)
+    finaliser_payload = {
+        "instance_id": instance_id,
+        "metadata": metadata_dict,
+        "transform_details": transform_details,
+     }
+    json_validate(finaliser_payload, finaliser_payload_schema)
 
     # Start poller
-    # client.invoke(
-    #    FunctionName="opendata-v4-upload-poller",
-    #    InvocationType="Event",
-    #    Payload=json.dumps(finaliser_payload),
-    # )
-    # log_as_complete()
+    client.invoke(
+        FunctionName="opendata-v4-upload-poller",
+        InvocationType="Event",
+        Payload=json.dumps(finaliser_payload),
+     )
+    print("Triggered upload poller")
+    log_as_complete()
