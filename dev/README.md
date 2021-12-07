@@ -16,10 +16,12 @@ Precanned payloads need to go in `./dev/payloads`. You'll need to create the `pa
 
 ### Usage
 
-`./dev/invoke.sh <NAME OF LAMBDA>`
+* `cd dev`
+* `./invoke.sh <NAME OF LAMBDA>`
 
 example: 
 
-`./dev/invoke.sh opendata-source-extractor-lambda`
+* `cd dev`
+* `./invoke.sh opendata-source-extractor-lambda`
 
 Press q to close down the initial summary, then jq will give you a nice readable summary of the response json.
