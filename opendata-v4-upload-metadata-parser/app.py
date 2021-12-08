@@ -45,4 +45,6 @@ def handler(event, context):
         raise ValueError(f"Unknown metadata handler {metadata_handler}")
 
     log_as_complete()
-    return {"statusCode": 200, "body": json.dumps(metadata_dict)}
+    metadata_body = json.dumps(metadata_dict)
+    print(f'Returning status code 200 and {metadata_body}')
+    return {"statusCode": 200, "body": metadata_body}

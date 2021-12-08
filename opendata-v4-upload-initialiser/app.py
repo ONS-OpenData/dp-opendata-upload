@@ -68,6 +68,7 @@ def handler(event, context):
         Payload=json.dumps(source_dict),
     )
 
+    print("Response received")
     payload_dict = json.load(r["Payload"])
     if payload_dict["statusCode"] != 200:
         log_as_incomplete()
