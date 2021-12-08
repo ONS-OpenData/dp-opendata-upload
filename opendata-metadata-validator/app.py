@@ -1,29 +1,67 @@
 import json
+import logging
 
-from lambdautils.helpers import log_as_complete
+from lambdautils.helpers import (
+    log_as_incomplete,
+    log_as_complete,
+    json_validate,
+    Source,
+    MetadataHandler,
+    COMMON_ZIP_PATH
+)
+
+from lambdautils.mocking import get_s3_client
+from lambdautils.schemas import source_bucket_schema, valid_metadata_schema
 
 
 def handler(event, context):
     """
-    Principle lambda event handler.
+    Triggered by opendata-transform-details-lambda
+    Gets the name of metadata file and metadata structure from manifest.json 
+    Determins if metadata in source is in a valid format
+    Returns {valid:True/False} 
     """
+    
+    s3 = get_s3_client()
 
-    # Given a starting event from opendata-decision-lambda
+    json_validate(event, source_bucket_schema)
 
-    # Validate that starting event
+    if isinstance(event, str):
+        event = json.loads(event)
+    bucket = event["bucket"]
+    zip_file = event["zip_file"]
 
-    # Call opendata-v4-upload-metadata-parser
+    with open(COMMON_ZIP_PATH, "wb") as f:
+        s3.download_fileobj(bucket, zip_file, f)
 
-    # If you get a response, validate it.
+    source = Source(COMMON_ZIP_PATH)
+    metadata_handler = source.get_metadata_handler()
 
-    # If its valid - return a 200 with payload ({"valid": "True"})
-    # If its not - return a 200 with payload ({"valid": "False"})
-
-    # TEMPORARY CODE!
-    # we need to actually do the above.
+    # The correctly_structured handler is for where the metadata json should already
+    # be in the shape we want
+    if metadata_handler == MetadataHandler.correctly_structured.value:
+        with open(source.get_metadata_file_path()) as f:
+            metadata_dict = json.load(f)
+            json_validate(metadata_dict, valid_metadata_schema)
+        """
+    elif metadata_handler == MetadataHandler.some_other_structure.value:
+        # if another metadata structure is being used, only validate that it
+        # is in a format that can be converted to what is needed, not actually
+        # converted
+        with open(source.get_metadata_file_path()) as f:
+            metadata_dict = json.load(f)
+            json_validate(metadata_dict, some_other_metadata_schema)
+        """
+    else:
+        log_as_incomplete()
+        return {
+            "statusCode": 200, 
+            "body": json.dumps({"valid": False})
+            }
 
     log_as_complete()
     return {
-        "statusCode": 200,
-        "body": json.dumps({"valid": True}),
-    }
+        "statusCode": 200, 
+        "body": json.dumps({"valid": True})
+        }
+    

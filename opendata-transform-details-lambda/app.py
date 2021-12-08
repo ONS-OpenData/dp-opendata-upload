@@ -18,6 +18,12 @@ this_dir = Path(os.path.dirname(os.path.realpath(__file__)))
 
 
 def handler(event, context):
+    """
+    Triggered by opendata-transform-decision-lambda
+    Gets transform details from details.json
+    Invokes opendata-metadata-validator
+    Returns transform_details
+    """
 
     client = get_lambda_client()
     json_validate(event, source_bucket_schema)

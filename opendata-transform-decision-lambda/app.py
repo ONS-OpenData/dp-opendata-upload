@@ -18,7 +18,9 @@ from lambdautils.schemas import (
 
 def handler(event, context):
     """
-    Principle lambda event handler.
+    Triggered by upload into s3 bucket
+    Invokes opendata-transform-details-lambda
+    Invokes one of the transform lambdas
     """
 
     client = get_lambda_client()

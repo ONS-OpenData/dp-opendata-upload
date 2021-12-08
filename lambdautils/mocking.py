@@ -67,6 +67,24 @@ class MockZebedeeClient:
         for key in ["ZEBEDEE_URL"]:
             if not os.environ.get(key, None):
                 raise AssertionError(msg.format(key))
+    
+    def create_collection(self, collection_name: str):
+         self.collection_name = collection_name
+
+    def get_collection_id(self):
+        return 'this-is-a-collection-id-' + self.collection_name.replace(' ', '-').lower()
+
+    def add_dataset_to_collection(self, collection_id: str, dataset_id: str):
+        return f"{dataset_id} - Dataset landing page added to collection"
+
+    def add_dataset_version_to_collection(
+        self, 
+        collection_id: str, 
+        dataset_id: str, 
+        edition: str, 
+        version_number: str
+        ):
+        return f"{dataset_id} - Dataset version '{version_number}' added to collection"
 
 
 class MockDatasetApiClient:
@@ -137,8 +155,29 @@ class MockDatasetApiClient:
                 f'You are calling MockRecipeApiClient.update_state_of_job() but no responses for the starting event "{self.initial_event_fixture}" have been defined.'
             )
 
-    def upload_complete(self, instance_id):
+    def upload_complete(self, instance_id: str):
         return self.upload_complete_mocks.pop(0)
+
+    def update_metadata(self, dataset_id: str, metadata_dict: dict):
+        return "Metadata updated"
+
+    def create_new_version_from_instance(self, instance_id: str, edition: str):
+        return "Instance state changed to edition-confirmed"
+
+    def get_version_number(self, dataset_id: str, instance_id: str):
+        return "version_number"
+
+    def update_dimensions(self, dataset_id: str, instance_id: str, metadata_dict: dict):
+        return "Dimension metadata updated"
+
+    def update_usage_notes(
+        self, 
+        dataset_id: str, 
+        version_number: str, 
+        metadata_dict: dict, 
+        edition: str
+        ):
+        return "Usage notes, if any, added"
 
 
 
@@ -189,7 +228,8 @@ class MockLambdaClient:
             "opendata-transform-decision-lambda/events/no_object_key.json",
             "opendata-v4-upload-initialiser/events/no_bucket_name.json",
             "opendata-v4-upload-initialiser/events/not_automated.json",
-            "opendata-v4-upload-poller/events/bad-starting-event.json"
+            "opendata-v4-upload-poller/events/bad-starting-event.json",
+            "opendata-metadata-validator/events/invalid-event.json"
         ]:
             self.mock_responses = []
 
@@ -285,6 +325,28 @@ class MockLambdaClient:
             == "opendata-transform-details-lambda/events/failed_response_metadata_validator.json"
         ):
             self.mock_responses = [payload({"statusCode": 500})]
+
+        elif (
+            initial_event_fixture
+            == "opendata-metadata-validator/events/failed_response_metadata_parser.json"
+        ):
+            self.mock_responses = [payload({"statusCode": 500})]
+
+        elif (
+            initial_event_fixture
+            == "opendata-metadata-validator/events/invalid_metadata.json"
+        ):
+            self.mock_responses = [
+                payload(
+                    {
+                        "statusCode": 200, 
+                        "body": {
+                            "metadata": {}, 
+                            "usage_notes": {}
+                        }
+                    }
+                )
+            ]
 
         else:
             raise ValueError(

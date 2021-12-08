@@ -15,7 +15,9 @@ from lambdautils.schemas import transform_evocation_payload_schema
 
 def handler(event, context):
     """
-    Principle lambda event handler.
+    Used when original data is in v4 format - no transform required
+    Triggered by opendata-transform-decision-lambda
+    Gets v4 from source, moves to second bucket, attaches args to object
     """
 
     s3 = get_s3_client()
@@ -43,7 +45,8 @@ def handler(event, context):
     # Uploads the v4 to the v4 upload bucket with an attribute linking
     # it back to its original source (and metadata)
     extra_args = {
-        "Metadata": {"source": json.dumps({"bucket": bucket, "zip_file": zip_file})}
+        #"Metadata": {"source": json.dumps({"bucket": bucket, "zip_file": zip_file})}
+        "Metadata": {"transform_details": json.dumps(event)}
     }  # 'x-amz-meta-' is added by the api
 
     # for S3 object_name use file_name without /tmp/
