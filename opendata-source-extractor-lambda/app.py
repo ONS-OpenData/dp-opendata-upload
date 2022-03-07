@@ -45,7 +45,9 @@ def handler(event, context):
     # initialise UploadApiClient
     upload_api = get_upload_api_client()
     # upload the file
-    body = upload_api.post_v4_to_s3(v4_path)
+    s3_url = upload_api.post_v4_to_s3(v4_path)
+    
+    event["s3_url"] = s3_url
 
     r = client.invoke(
         FunctionName="opendata-v4-upload-initialiser",
