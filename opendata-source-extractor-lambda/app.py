@@ -9,7 +9,7 @@ from lambdautils.helpers import (
     V4_BUCKET_NAME,
     Source,
 )
-from lambdautils.mocking import get_s3_client
+from lambdautils.mocking import get_s3_client, get_lambda_client, get_upload_api_client
 from lambdautils.schemas import transform_evocation_payload_schema
 
 
@@ -17,21 +17,21 @@ def handler(event, context):
     """
     Used when original data is in v4 format - no transform required
     Triggered by opendata-transform-decision-lambda
-    Gets v4 from source, moves to second bucket, attaches args to object
+    Gets v4 from source, uploads to publishing bucket using upload api
+    Invokes opendata-v4-upload-initialiser lambda
     """
-
-    s3 = get_s3_client()
-    print(type(s3))
-
+    
+    client = get_lambda_client()
+    s3 = get_s3_client() 
+    
     # Validate that the event matches the schema "transform_evocation_payload_schema"
     json_validate(event, transform_evocation_payload_schema)
     bucket = event["source"]["bucket"]
-    zip_file = "/".join(event["source"]["zip_file"].split("/")[-2:])
-    print(json.dumps({"bucket": bucket, "zip_file": zip_file}, indent=2))
-
+    zip_file = event["source"]["zip_file"]
+    
     with open(COMMON_ZIP_PATH, "wb") as f:
         s3.download_fileobj(bucket, zip_file, f)
-
+    
     source = Source(COMMON_ZIP_PATH)
     datafiles = source.get_data_file_paths()
 
@@ -42,25 +42,18 @@ def handler(event, context):
         )
     v4_path = datafiles[0]
 
-    # Uploads the v4 to the v4 upload bucket with an attribute linking
-    # it back to its original source (and metadata)
-    extra_args = {
-        #"Metadata": {"source": json.dumps({"bucket": bucket, "zip_file": zip_file})}
-        "Metadata": {"transform_details": json.dumps(event)}
-    }  # 'x-amz-meta-' is added by the api
+    # initialise UploadApiClient
+    upload_api = get_upload_api_client()
+    # upload the file
+    body = upload_api.post_v4_to_s3(v4_path)
 
-    # for S3 object_name use file_name without /tmp/
-    # removing the '.' from file name - need to confirm this
-    # timestamp for uniqueness
-    timestamp = datetime.datetime.now()
-    timestamp = datetime.datetime.strftime(timestamp, "%d%m%y%H%M%S")
-    object_name = f"{timestamp}-{v4_path.split('/')[-1].replace('.', '')}"
+    r = client.invoke(
+        FunctionName="opendata-v4-upload-initialiser",
+        InvocationType="Event",
+        Payload=json.dumps(event),
+    )
 
-    # Upload the file
-    try:
-        with open(v4_path, "rb") as f:
-            s3.upload_fileobj(f, V4_BUCKET_NAME, object_name, ExtraArgs=extra_args)
-        log_as_complete()
-    except Exception as err:
-        log_as_incomplete()
-        raise err
+    log_as_complete()
+
+    
+        
