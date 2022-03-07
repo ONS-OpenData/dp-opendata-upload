@@ -6,7 +6,7 @@ import shutil
 import boto3
 
 from .helpers import COMMON_ZIP_PATH
-from .clients import ZebedeeClient, RecipeApiClient, DatasetApiClient
+from .clients import ZebedeeClient, RecipeApiClient, DatasetApiClient, UploadApiClient
 
 
 def get_s3_client():
@@ -30,18 +30,25 @@ def get_zebedee_client():
     return ZebedeeClient()
 
 
-def get_recipe_api_client(access_token: str):
+def get_recipe_api_client():
     """When testing return a mock client for faking interactions with the recipe api"""
     if os.environ.get("IS_TEST", None):
         return MockRecipeApiClient()
-    return RecipeApiClient(access_token)
+    return RecipeApiClient()
 
 
-def get_dataset_api_client(access_token: str, s3_url: str = None):
+def get_dataset_api_client(s3_url: str = None):
     """When testing return a mock client for faking interactions with the dataset api"""
     if os.environ.get("IS_TEST", None):
         return MockDatasetApiClient()
-    return DatasetApiClient(access_token, s3_url=s3_url)
+    return DatasetApiClient(s3_url=s3_url)
+
+
+def get_upload_api_client():
+    """ When testing return a mock client for faking interactions with the upload api """
+    if os.environ.get("IS_TEST", None):
+        return MockUploadClient()
+    return UploadApiClient()
 
 
 def payload(payload_dict: dict):
@@ -204,6 +211,19 @@ class MockRecipeApiClient:
             raise ValueError(
                 f'You are calling MockRecipeApiClient.get_recipe() but no responses for the starting event "{self.initial_event_fixture}" have been defined.'
             )
+
+
+
+class MockUploadApiClient:
+    def __init__(self):
+        initial_event_fixture = os.environ.get("EVENT_FIXTURE", None).strip()
+        if not initial_event_fixture:
+            raise ValueError(
+                'Aborting. Test container needs to have an envionment variable of "EVENT_FIXTURE".'
+            )
+        self.initial_event_fixture = initial_event_fixture
+
+        assert os.environ.get("UPLOAD_API_URL", False)
 
 
 class MockLambdaClient:

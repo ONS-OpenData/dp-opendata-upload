@@ -12,14 +12,21 @@ class ZebedeeClient:
     Class for interacting with the Zebedee restful api.
     """
 
-    def __init__(self, access_token: str):
+    def __init__(self):
 
-        url = os.environ.get("ZEBEDEE_URL", None)
+        url = os.environ.get("API_URL", None)
         if not url:
             raise ValueError("Zebedee url must be exported as an environment variable")
 
+        access_token = os.environ.get("ACCESS_TOKEN", None)
+        if not access_token:
+            raise ValueError(
+                "Aborting. Need an access token."
+            )
+
         self.url = url
         self.access_token = access_token
+        self.headers = {"Authorization": self.access_token}
 
     def create_collection(self, collection_name: str):
         """
@@ -27,8 +34,7 @@ class ZebedeeClient:
         """
 
         self.collection_name = collection_name
-        headers = {"Authorization": self.access_token}
-        r = requests.post(self.url + "/collection", headers=headers, json={"name": self.collection_name})
+        r = requests.post(f"{self.url}/collection", headers=self.headers, json={"name": self.collection_name})
         # doesn't return a 200 when completed
         # so use chek_collection_exists
         self.check_collection_exists()
@@ -39,9 +45,8 @@ class ZebedeeClient:
         """
 
         collection_name_for_url = self.collection_name.replace(' ', '').lower()
-        headers = {"Authorization": self.access_token}
 
-        r = requests.get(self.url + '/collection/' + collection_name_for_url, headers=headers)
+        r = requests.get(f"{self.url}/collection/{collection_name_for_url}", headers=self.headers)
         if r.status_code != 200:
             raise Exception(f"Collection '{self.collection_name}' not created - returned a {r.status_code} error")
 
@@ -50,14 +55,13 @@ class ZebedeeClient:
         Gets collection_id from newly created collection
         """
 
-        headers = {'X-Florence-Token':self.access_token}
         collection_name_for_url = self.collection_name.replace(' ', '').lower()
 
-        r = requests.get(f"{self.url}/collection/{collection_name_for_url}", headers=headers)
+        r = requests.get(f"{self.url}/collection/{collection_name_for_url}", headers=self.headers)
 
         if r.status_code == 200:
             collection_dict = r.json()
-            collection_id = collection_dict['id']
+            collection_id = collection_dict["id"]
             return collection_id
         else:
             raise Exception(f"Collection '{self.collection_name}' not found - returned a {r.status_code} error")
@@ -67,10 +71,9 @@ class ZebedeeClient:
         Adds dataset landing page to collection
         '''
 
-        headers = {'X-Florence-Token':self.access_token}
         dataset_to_collection_url = f"{self.url}/collections/{collection_id}/datasets/{dataset_id}"
 
-        r = requests.put(dataset_to_collection_url, headers=headers, json={"state": "Complete"})
+        r = requests.put(dataset_to_collection_url, headers=self.headers, json={"state": "Complete"})
         if r.status_code == 200:
             print(f"{dataset_id} - Dataset landing page added to collection")
         else:
@@ -87,10 +90,9 @@ class ZebedeeClient:
         Adds dataset version to collection
         '''
 
-        headers = {'X-Florence-Token':self.access_token}
         dataset_version_to_collection_url = f"{self.url}/collections/{collection_id}/datasets/{dataset_id}/editions/{edition}/versions/{version_number}"
         
-        r = requests.put(dataset_version_to_collection_url, headers=headers, json={"state": "Complete"})
+        r = requests.put(dataset_version_to_collection_url, headers=self.headers, json={"state": "Complete"})
         if r.status_code == 200:
             print(f"{dataset_id} - Dataset version '{version_number}' added to collection")
         else:
@@ -98,18 +100,21 @@ class ZebedeeClient:
 
 
 
-
-    
-
-
 class RecipeApiClient:
     """
     Class for interacting with the recipe api
     """
 
-    def __init__(self, access_token: str):
-        self.url = os.environ.get("RECIPE_API_URL", None)
-        if not self.url:
+    def __init__(self):
+
+        access_token = os.environ.get("ACCESS_TOKEN", None)
+        if not access_token:
+            raise ValueError(
+                "Aborting. Need an access token."
+            )
+
+        api_url = os.environ.get("API_URL", None)
+        if not api_url:
             raise ValueError(
                 "The recipe api url must be exported as an environment variable"
             )
@@ -118,6 +123,8 @@ class RecipeApiClient:
         # processing/getting more than once.
         self.recipes_cache = None
         self.access_token = access_token
+        self.url = f"{api_url}/recipes"
+        self.headers = {"Authorization": self.access_token}
 
     def get_all_recipes(self) -> (dict):
         """
@@ -127,8 +134,7 @@ class RecipeApiClient:
             return self.recipes_cache
 
         print(f'Get all recipes from recipe api with: "{self.url}?limit=1000\n".')
-        headers = {"Authorization": self.access_token}
-        r = requests.get(self.url + "?limit=1000", headers=headers)
+        r = requests.get(f"{self.url}?limit=1000", headers=self.headers)
 
         if r.status_code == 200:
             self.recipes_cache = r.json()
@@ -136,7 +142,7 @@ class RecipeApiClient:
             return self.recipes_cache
         else:
             log_as_incomplete()
-            raise Exception("Recipe API returned a {} error".format(r.status_code))
+            raise Exception(f"Recipe API returned a {r.status_code} error")
 
     def check_recipe_exists(self, dataset_id: str):
         """
@@ -151,10 +157,13 @@ class RecipeApiClient:
         # create a list of all existing dataset ids
         dataset_id_list = []
         for item in recipe_dict["items"]:
+            # hack around incorrect recipe in database
+            if item['id'] == 'b944be78-f56d-409b-9ebd-ab2b77ffe187':
+                continue
             dataset_id_list.append(item["output_instances"][0]["dataset_id"])
         if dataset_id not in dataset_id_list:
             log_as_incomplete()
-            raise Exception("Recipe does not exist for {}".format(dataset_id))
+            raise Exception(f"Recipe does not exist for {dataset_id}")
 
     def get_recipe(self, dataset_id: str):
         """
@@ -167,6 +176,9 @@ class RecipeApiClient:
 
         # iterate through recipe api to find correct dataset_id
         for item in recipe_dict["items"]:
+            # hack around incorrect recipe in database
+            if item['id'] == 'b944be78-f56d-409b-9ebd-ab2b77ffe187':
+                continue
             if dataset_id == item["output_instances"][0]["dataset_id"]:
                 return item
         else:
@@ -175,25 +187,34 @@ class RecipeApiClient:
 
 
 class DatasetApiClient:
-    def __init__(self, access_token: str, s3_url: str = None):
-        self.url = os.environ.get("DATASET_API_URL", None)
-        if not self.url:
+
+    def __init__(self, s3_url: str = None):
+
+        url = os.environ.get("API_URL", None)
+        if not url:
             raise ValueError(
                 "The dataset api url must be exported as an environment variable"
             )
-        self.access_token = access_token
 
+        access_token = os.environ.get("ACCESS_TOKEN", None)
+        if not access_token:
+            raise ValueError(
+                "Aborting. Need an access token."
+            )
+
+        self.access_token = access_token
+        self.url = url
+        self.headers = {"Authorization": self.access_token}
         # s3 url not including file name, i.e "https://s3-<REGION>.amazonaws.com/<BUCKET-NAME>"
         self.s3_v4_bucket_url = s3_url
 
     def get_all_dataset_api_jobs(self) -> (dict):
         """
-        Returns whole contents dataset api /jobs endpoint
+        Returns whole content of dataset api /jobs endpoint
         """
-        dataset_jobs_api_url = "{self.url}/jobs"
-        headers = {"Authorization": self.access_token}
+        dataset_jobs_api_url = f"{self.url}/jobs"
 
-        r = requests.get(dataset_jobs_api_url + "?limit=1000", headers=headers)
+        r = requests.get(dataset_jobs_api_url, headers=self.headers)
         if r.status_code == 200:
             whole_dict = r.json()
             total_count = whole_dict["total_count"]
@@ -204,10 +225,8 @@ class DatasetApiClient:
                 offset = 0
                 dataset_jobs_dict = []
                 for i in range(number_of_iterations):
-                    new_url = dataset_jobs_api_url + "?limit=1000&offset={}".format(
-                        offset
-                    )
-                    new_dict = requests.get(new_url, headers=headers).json()
+                    new_url = f"{dataset_jobs_api_url}?limit=1000&offset={offset}"
+                    new_dict = requests.get(new_url, headers=self.headers).json()
                     for item in new_dict["items"]:
                         dataset_jobs_dict.append(item)
                     offset += 1000
@@ -215,7 +234,7 @@ class DatasetApiClient:
         else:
             log_as_incomplete()
             raise Exception(
-                "/dataset/jobs API returned a {} error".format(r.status_code)
+                f"/dataset/jobs API returned a {r.status_code} error"
             )
 
     def get_latest_job_info(self) -> (dict):
@@ -240,17 +259,21 @@ class DatasetApiClient:
                 "To call .post_new_job(), you need to instantiate the dataset api client with an S3 url env var."
             )
 
-        headers = {"Authorization": self.access_token}
         s3_url = f"{self.s3_v4_bucket_url}/{v4_file}"
 
         payload = {
-            "recipe": recipe["recipe_id"],
+            "recipe": recipe["id"],
             "state": "created",
             "links": {},
-            "files": [{"alias_name": recipe["recipe_alias"], "url": s3_url}],
+            "files": [
+                {
+                    "alias_name": recipe['files'][0]['description'], 
+                    "url": s3_url
+                }
+            ],
         }
 
-        r = requests.post(f"{self.url}/jobs", headers=headers, json=payload)
+        r = requests.post(f"{self.url}/jobs", headers=self.headers, json=payload)
         if r.status_code == 201:
             print("Job created successfully")
         else:
@@ -261,7 +284,7 @@ class DatasetApiClient:
         job_id, job_recipe_id, job_instance_id = self.get_latest_job_info()
 
         # quick check to make sure newest job id is the correct one
-        if job_recipe_id != recipe["recipe_id"]:
+        if job_recipe_id != recipe["id"]:
             log_as_incomplete()
             raise Exception(
                 f"New job recipe ID ({job_recipe_id}) does not match recipe ID used to create new job ({recipe['recipe_id']})"
@@ -271,15 +294,14 @@ class DatasetApiClient:
 
     def get_job_info(self, job_id: str):
         dataset_jobs_id_url = f"{self.url}/jobs/{job_id}"
-        headers = {"Authorization": self.access_token}
 
-        r = requests.get(dataset_jobs_id_url, headers=headers)
+        r = requests.get(dataset_jobs_id_url, headers=self.headers)
         if r.status_code == 200:
             job_info_dict = r.json()
             return job_info_dict
         else:
             log_as_incomplete()
-            raise Exception("/dataset/jobs/{job_id} returned error {r.status_code}")
+            raise Exception(f"/dataset/jobs/{job_id} returned error {r.status_code}")
 
     def update_state_of_job(self, job_id: str):
         """
@@ -288,7 +310,6 @@ class DatasetApiClient:
         """
 
         updating_state_of_job_url = f"{self.url}/jobs/{job_id}"
-        headers = {"Authorization": self.access_token}
 
         updating_state_of_job_json = {}
         updating_state_of_job_json["state"] = "submitted"
@@ -299,7 +320,7 @@ class DatasetApiClient:
         if len(job_id_dict["files"]) != 0:
             r = requests.put(
                 updating_state_of_job_url,
-                headers=headers,
+                headers=self.headers,
                 json=updating_state_of_job_json,
             )
             if r.status_code != 200:
@@ -315,9 +336,8 @@ class DatasetApiClient:
         Returns Bool
         """
         instance_id_url = f"{self.url}/instances/{instance_id}"
-        headers = {"Authorization": self.access_token}
 
-        r = requests.get(instance_id_url, headers=headers)
+        r = requests.get(instance_id_url, headers=self.headers)
         if r.status_code != 200:
             raise Exception(
                 "{} raised a {} error".format(instance_id_url, r.status_code)
@@ -331,7 +351,7 @@ class DatasetApiClient:
         if job_state == "created":
             log_as_incomplete()
             raise Exception(
-                'State of instance is "{job_state}", import process has not been triggered'
+                f"State of instance is '{job_state}', import process has not been triggered"
             )
 
         elif job_state == "submitted":
@@ -346,9 +366,7 @@ class DatasetApiClient:
                 raise Exception(error_message)
             logging.info("Import process is running")
             logging.info(
-                "{} out of {} observations have been imported".format(
-                    total_inserted_observations, total_observations
-                )
+                f"{total_inserted_observations} out of {total_observations} observations have been imported"
             )
 
         elif job_state == "completed":
@@ -364,10 +382,9 @@ class DatasetApiClient:
         metadata = metadata_dict["metadata"]
         assert type(metadata) == dict, "metadata['metadata'] must be a dict"
 
-        headers = {'X-Florence-Token':self.access_token}
         dataset_url = f"{self.url}/datasets/{dataset_id}"
         
-        r = requests.put(dataset_url, headers=headers, json=metadata)
+        r = requests.put(dataset_url, headers=self.headers, json=metadata)
         if r.status_code != 200:
             print(f"Metadata not updated, returned a {r.status_code} error")
         else:
@@ -380,13 +397,12 @@ class DatasetApiClient:
         Will currently just use current date as release date
         '''
 
-        headers = {'X-Florence-Token':self.access_token}
         instance_url = f"{self.url}/instances/{instance_id}"
 
         current_date = datetime.datetime.now()
         release_date = datetime.datetime.strftime(current_date, '%Y-%m-%dT00:00:00.000Z')
 
-        r = requests.put(instance_url, headers=headers, json={
+        r = requests.put(instance_url, headers=self.headers, json={
             'edition':edition, 
             'state':'edition-confirmed', 
             'release_date':release_date
@@ -406,10 +422,9 @@ class DatasetApiClient:
         Returns version number as string
         '''   
 
-        headers = {'X-Florence-Token':self.access_token}
         instance_url = f"{self.url}/instances/{instance_id}"
 
-        r = requests.get(instance_url, headers=headers)
+        r = requests.get(instance_url, headers=self.headers)
         if r.status_code != 200:
             raise Exception(f"/datasets/{dataset_id}/instances/{instance_id} returned a {r.status_code} error")
             
@@ -430,7 +445,6 @@ class DatasetApiClient:
         dimension_dict = metadata_dict['dimension_data']
         assert type(dimension_dict) == dict, 'dimension_dict must be a dict'
         
-        headers = {'X-Florence-Token':self.access_token}
         instance_url = f"{self.url}/instances/{instance_id}"
         
         for dimension in dimension_dict.keys():
@@ -440,7 +454,7 @@ class DatasetApiClient:
             
             # making the request for each dimension separately
             dimension_url = f"{instance_url}/dimensions/{dimension}"
-            r = requests.put(dimension_url, headers=headers, json=new_dimension_info)
+            r = requests.put(dimension_url, headers=self.headers, json=new_dimension_info)
             
             if r.status_code != 200:
                 print(f"Dimension info not updated for {dimension}, returned a {r.status_code} error")
@@ -474,13 +488,110 @@ class DatasetApiClient:
         usage_notes_to_add = {}
         usage_notes_to_add['usage_notes'] = usage_notes
         
-        headers = {'X-Florence-Token':self.access_token}
         version_url = f"{self.url}/datasets/{dataset_id}/editions/{edition}/versions/{version_number}"
         
-        r = requests.put(version_url, headers=headers, json=usage_notes_to_add)
+        r = requests.put(version_url, headers=self.headers, json=usage_notes_to_add)
         if r.status_code == 200:
             print('Usage notes added')
         else:
             print(f"Usage notes not added, returned a {r.status_code} error")
             
 
+class UploadApiClient:
+    """
+    Uploading a v4 to the s3 bucket
+    """
+    def __init__(self):
+
+        access_token = os.environ.get("ACCESS_TOKEN", None)
+        if not access_token:
+            raise ValueError(
+                "Aborting. Need an access token."
+            )
+
+        api_url = os.environ.get("API_URL", None)
+        if not api_url:
+            raise ValueError(
+                "The uplaod api url must be exported as an environment variable"
+            )
+
+        self.access_token = access_token
+        self.url = f"{api_url}/upload"
+        self.headers = {"Authorization": self.access_token}
+
+    def post_v4_to_s3(self, v4_path: str):
+        # properties that do not change for the upload
+        csv_total_size = str(os.path.getsize(v4_path)) # size of the whole csv
+        timestamp = datetime.datetime.now() # to be ued as unique resumableIdentifier
+        timestamp = datetime.datetime.strftime(timestamp, "%d%m%y%H%M%S")
+        file_name = v4_path.split("/")[-1]
+
+        # chunk up the data
+        temp_files = self.create_temp_chunks(v4_path) # list of temporary files
+        total_number_of_chunks = len(temp_files)
+        chunk_number = 1 # starting chunk number
+
+        # uploading each chunk
+        for chunk_file in temp_files:
+            csv_size = str(os.path.getsize(chunk_file)) # size of the chunk
+
+            with open(chunk_file, "rb") as f:
+                files = {"file": f} # Inlcude the opened file in the request
+                
+                # Params that are added to the request
+                params = {
+                        "resumableType": "text/csv",
+                        "resumableChunkNumber": chunk_number,
+                        "resumableCurrentChunkSize": csv_size,
+                        "resumableTotalSize": csv_total_size,
+                        "resumableChunkSize": csv_size,
+                        "resumableIdentifier": f"{timestamp}-{file_name.replace('.', '')}",
+                        "resumableFilename": file_name,
+                        "resumableRelativePath": ".",
+                        "resumableTotalChunks": total_number_of_chunks
+                }
+                
+                # making the POST request
+                r = requests.post(self.url, headers=self.headers, params=params, files=files)
+                if r.status_code != 200:  
+                    raise Exception(f"{self.url} returned error {r.status_code}")
+                    
+                chunk_number += 1 # moving onto next chunk number
+
+        s3_key = params["resumableIdentifier"]
+        s3_url = f"https://s3-eu-west-1.amazonaws.com/ons-dp-develop-publishing-uploaded-datasets/{s3_key}"
+    
+        # delete temp files
+        self.delete_temp_chunks(temp_files)
+        
+        return s3_url
+
+    def create_temp_chunks(self, v4_path: str):
+        """
+        Chunks up the data into text files, returns list of temp files
+        """
+        chunk_size = 5 * 1024 * 1024 #standard
+        file_number = 1
+        location = "/".join(v4_path.split("/")[:-1]) + "/"
+        temp_files = []
+        with open(v4_path, 'rb') as f:
+            chunk = f.read(chunk_size)
+            while chunk:
+                file_name = f"{location}temp-file-part-{str(file_number)}"
+                with open(file_name, 'wb') as chunk_file:
+                    chunk_file.write(chunk)
+                    temp_files.append(file_name)
+                file_number += 1
+                chunk = f.read(chunk_size)
+        return temp_files 
+
+    def delete_temp_chunks(self, temporary_files: list):
+        """
+        Deletes the temporary chunks that were uploaded - is needed?
+        """
+        for file in temporary_files:
+            os.remove(file)
+
+
+
+        
