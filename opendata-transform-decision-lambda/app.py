@@ -44,11 +44,11 @@ def handler(event, context):
         log_as_incomplete()
         raise Exception(
             f"Failed to get response from opendata-transform-details-lambda, with status code {payload_dict['statusCode']}"
-        )
-    payload_body = json.loads(payload_dict["body"])
-    transform_details = payload_body.get("transform_details")
+        ) 
+
+    transform_details = payload_dict["body"]["transform_details"]
     json_validate(transform_details, transform_details_schema)
-    transform_type = transform_details.get("transform_type")
+    transform_type = transform_details["transform_type"]
 
     if transform_type == TransformType.long.value:
         log_as_incomplete()
@@ -66,7 +66,11 @@ def handler(event, context):
             InvocationType="Event",
             Payload=json.dumps(transform_details),
         )
+        
         log_as_complete()
+        return {
+            "body": "lambda completed"
+        }
 
     elif transform_type == TransformType.short.value:
         log_as_incomplete()
