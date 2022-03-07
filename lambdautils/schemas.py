@@ -236,6 +236,32 @@ transform_evocation_payload_schema = {
     ],
 }
 
+# The payload sent to initialise the upload process
+upload_initialise_payload_schema = {
+    "properties": {
+        "transform": {"type": "string"},
+        "dataset_id": {"type": "string"},
+        "edition_id": {"type": "string"},
+        "collection_name": {"type": "string"},
+        "source": {
+            "type": "object",
+            "properties": {
+                "bucket": {"type": "string"},
+                "zip_file": {"type": "string", "pattern": "zip$"},
+            },
+        "s3_url": {"type": "string"},
+        },
+    },
+    "required": [
+        "transform",
+        "dataset_id",
+        "edition_id",
+        "collection_name",
+        "source",
+        "s3_url"
+    ],
+}
+
 # TODO - more details
 # Dict with the required metadata to upload a v4
 valid_metadata_schema = {

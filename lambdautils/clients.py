@@ -188,7 +188,7 @@ class RecipeApiClient:
 
 class DatasetApiClient:
 
-    def __init__(self, s3_url: str = None):
+    def __init__(self, s3_url: str):
 
         url = os.environ.get("API_URL", None)
         if not url:
@@ -201,12 +201,16 @@ class DatasetApiClient:
             raise ValueError(
                 "Aborting. Need an access token."
             )
+        
+        if not s3_url:
+            raise ValueError(
+                "Aborting. s3_url is required"
+            )
 
         self.access_token = access_token
         self.url = url
         self.headers = {"Authorization": self.access_token}
-        # s3 url not including file name, i.e "https://s3-<REGION>.amazonaws.com/<BUCKET-NAME>"
-        self.s3_v4_bucket_url = s3_url
+        self.s3_url = s3_url
 
     def get_all_dataset_api_jobs(self) -> (dict):
         """
@@ -248,19 +252,12 @@ class DatasetApiClient:
         instance_id = dataset_jobs_dict[-1]["links"]["instances"][0]["id"]
         return latest_id, recipe_id, instance_id
 
-    def post_new_job(self, v4_file, recipe: dict) -> (Tuple[str, str]):
+    def post_new_job(self, recipe: dict) -> (Tuple[str, str]):
         """
         Creates a new job in the /dataset/jobs API
         Job is created in state 'created'
         """
-        if not self.s3_v4_bucket_url:
-            log_as_incomplete()
-            raise Exception(
-                "To call .post_new_job(), you need to instantiate the dataset api client with an S3 url env var."
-            )
-
-        s3_url = f"{self.s3_v4_bucket_url}/{v4_file}"
-
+        
         payload = {
             "recipe": recipe["id"],
             "state": "created",
@@ -268,7 +265,7 @@ class DatasetApiClient:
             "files": [
                 {
                     "alias_name": recipe['files'][0]['description'], 
-                    "url": s3_url
+                    "url": self.s3_url
                 }
             ],
         }
