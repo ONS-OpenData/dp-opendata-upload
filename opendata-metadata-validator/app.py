@@ -1,5 +1,8 @@
 import json
 import logging
+import requests
+import os
+
 
 from lambdautils.helpers import (
     log_as_incomplete,
@@ -21,7 +24,7 @@ def handler(event, context):
     Determins if metadata in source is in a valid format
     Returns {valid:True/False} 
     """
-    
+
     s3 = get_s3_client()
 
     json_validate(event, source_bucket_schema)
@@ -43,7 +46,7 @@ def handler(event, context):
         with open(source.get_metadata_file_path()) as f:
             metadata_dict = json.load(f)
             json_validate(metadata_dict, valid_metadata_schema)
-        """
+    """
     elif metadata_handler == MetadataHandler.some_other_structure.value:
         # if another metadata structure is being used, only validate that it
         # is in a format that can be converted to what is needed, not actually
@@ -51,17 +54,17 @@ def handler(event, context):
         with open(source.get_metadata_file_path()) as f:
             metadata_dict = json.load(f)
             json_validate(metadata_dict, some_other_metadata_schema)
-        """
+    """
     else:
         log_as_incomplete()
-        return {
+        return 
             "statusCode": 200, 
-            "body": json.dumps({"valid": False})
+            "body": {"valid": False}
             }
 
     log_as_complete()
     return {
         "statusCode": 200, 
-        "body": json.dumps({"valid": True})
+        "body": {"valid": True}
         }
     
