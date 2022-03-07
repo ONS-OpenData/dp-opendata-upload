@@ -2,9 +2,9 @@
     "dataset1": {
         "transform": "<some github repo with the transform in>",
         "transform_type": "none",
-        "dataset_id": "<dataset_1_id>",
-        "edition_id": "<edition_name>",
-        "collection_name": "<collection_name>"
+        "dataset_id": "faster-indicators-shipping-data",
+        "edition_id": "time-series",
+        "collection_name": "CMD lambda test"
       },
     "dataset2": {
         "transform": "<some github repo with the transform in>",

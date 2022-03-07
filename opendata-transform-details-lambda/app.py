@@ -26,20 +26,15 @@ def handler(event, context):
     """
 
     client = get_lambda_client()
+
     json_validate(event, source_bucket_schema)
 
     if isinstance(event, str):
         event = json.loads(event)
-    zip_file = event.get("zip_file")
+    zip_file = event["zip_file"]
     dataset_name = dataset_name_from_zip_name(zip_file)
 
-    # Get transform details from details.json
-    with open(Path(this_dir / "details.json")) as f:
-        data = json.load(f)
-
-    transform_details_dict = data.get(dataset_name)
-    json_validate(transform_details_dict, transform_details_schema)
-
+    # validate metadata
     r = client.invoke(
         FunctionName="opendata-metadata-validator",
         InvocationType="RequestResponse",
@@ -53,15 +48,21 @@ def handler(event, context):
             f"Failed to get response from opendata-metadata-validator, with status code {payload_dict['statusCode']}"
         )
 
-    body_dict = json.loads(payload_dict["body"])
-    is_valid = body_dict["valid"]
+    is_valid = payload_dict["body"]["valid"]
     assert isinstance(is_valid, bool)
     if not is_valid:
         log_as_incomplete()
-        raise Exception("Aborting for invalid metadata.")
+        raise Exception("Aborting for invalid metadata.")    
+    
+    # Get transform details from details.json
+    with open(Path(this_dir / "details.json")) as f:
+        data = json.load(f)
+
+    transform_details_dict = data[dataset_name]
+    json_validate(transform_details_dict, transform_details_schema)
 
     log_as_complete()
     return {
         "statusCode": 200,
-        "body": json.dumps({"transform_details": transform_details_dict}),
+        "body": {"transform_details": transform_details_dict}
     }
