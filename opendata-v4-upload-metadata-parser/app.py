@@ -1,5 +1,6 @@
 import logging
 import json
+import requests
 
 from lambdautils.helpers import (
     log_as_incomplete,
@@ -20,6 +21,7 @@ def handler(event, context):
     Transforms metadata if needed
     Returns metadata
     """
+    
 
     s3 = get_s3_client()
 
@@ -31,8 +33,12 @@ def handler(event, context):
     bucket = event["bucket"]
     zip_file = event["zip_file"]
 
+    print("opening s3 object")
+
     with open(COMMON_ZIP_PATH, "wb") as f:
         s3.download_fileobj(bucket, zip_file, f)
+
+    print("s3 object downloaded")
 
     source = Source(COMMON_ZIP_PATH)
     metadata_handler = source.get_metadata_handler()
@@ -43,8 +49,11 @@ def handler(event, context):
         with open(source.get_metadata_file_path()) as f:
             metadata_dict = json.load(f)
             json_validate(metadata_dict, valid_metadata_schema)
-        """
+        
     elif metadata_handler == MetadataHandler.some_other_structure.value:
+        log_as_incomplete()
+        raise NotImplementedError("Only looking at correctly structured metadata currently")
+        """
         with open(source.get_metadata_file_path()) as f:
             other_structure_metadata_dict = json.load(f)
             # do the transform of the metadata here, want it in the 
@@ -52,11 +61,10 @@ def handler(event, context):
             metadata_dict = function(other_structure_metadata_dict)
             json_validate(metadata_dict, valid_metadata_schema)
         """
+
     else:
         log_as_incomplete()
         raise ValueError(f"Unknown metadata handler {metadata_handler}")
 
     log_as_complete()
-    metadata_body = json.dumps(metadata_dict)
-    print(f'Returning status code 200 and {metadata_body}')
-    return {"statusCode": 200, "body": metadata_body}
+    return {"statusCode": 200, "body": metadata_dict}
