@@ -7,7 +7,7 @@ All transforms will be stored in the `cmd-transforms` repo of the `ONS-OpenData`
 
 **Transform**
 
-The `main.py` file will consist of functions where the main function (the transform) will be called `transform` and will take in one argument. This argument will be `location` which refers to the path where the source data files are. The `opendata-transform-lambda` will pick up a zip file from a s3 bucket and then extract these files into `/tmp/` so this location may become hard coded as this but for now it will be left changable.
+The `main.py` file will consist of functions where the main function (the transform) will be called `transform` and will take in one argument. This argument will be `files` which refers to a list of the source data files. The `opendata-transform-lambda` will pick up a zip file from a s3 bucket and then extract these files into `/tmp/` so this location may become hard coded as this but for now it will be left changable.
 
 The transform function will then need to find the required source file(s) from the extracted files, which will require some 'rule' where it looks for only 'xlsx' files or maybe a csv file with a certain name. Within the extracted files there will be a `manifest.json` file and a metadata file which aren't needed for the transform.
 
@@ -21,9 +21,10 @@ The function is not called within `main.py` but will be called from `opendata-tr
 import pandas, glob
 import databaker # if needed
 
-def transform(location):
+def transform(files):
   # input file is an xlsx
-  source_files = glob.glob(location + '*.xlsx')
+  # some assertion
+  assert len(files) == 1
   source_file = source_files[0]
   
   '''do some databaking and post processing to get v4'''
