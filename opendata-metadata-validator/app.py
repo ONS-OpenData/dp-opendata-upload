@@ -10,11 +10,12 @@ from lambdautils.helpers import (
     json_validate,
     Source,
     MetadataHandler,
-    COMMON_ZIP_PATH
+    COMMON_ZIP_PATH,
+    empty_tmp_folder,
 )
 
 from lambdautils.mocking import get_s3_client
-from lambdautils.schemas import source_bucket_schema, valid_metadata_schema
+from lambdautils.schemas import metadata_validator_event_schema, valid_metadata_schema, cmd_metadata_schema
 
 
 def handler(event, context):
@@ -25,46 +26,53 @@ def handler(event, context):
     Returns {valid:True/False} 
     """
 
+    json_validate(event, metadata_validator_event_schema)
+
+    # empty /tmp/ 
+    empty_tmp_folder()
+
+    # initialising clients
     s3 = get_s3_client()
 
-    json_validate(event, source_bucket_schema)
-
-    if isinstance(event, str):
-        event = json.loads(event)
     bucket = event["bucket"]
     zip_file = event["zip_file"]
 
     with open(COMMON_ZIP_PATH, "wb") as f:
         s3.download_fileobj(bucket, zip_file, f)
 
+    print("Zip file downloaded from s3")
+
     source = Source(COMMON_ZIP_PATH)
     metadata_handler = source.get_metadata_handler()
 
-    # The correctly_structured handler is for where the metadata json should already
+    # The correctly_structured handler is for when the metadata json should already
     # be in the shape we want
     if metadata_handler == MetadataHandler.correctly_structured.value:
+        
         with open(source.get_metadata_file_path()) as f:
             metadata_dict = json.load(f)
             json_validate(metadata_dict, valid_metadata_schema)
-    """
-    elif metadata_handler == MetadataHandler.some_other_structure.value:
-        # if another metadata structure is being used, only validate that it
-        # is in a format that can be converted to what is needed, not actually
-        # converted
+        
+    # The cmd_csvw handler is for when the metadata json is in the format that 
+    # is created by CMD
+    elif metadata_handler == MetadataHandler.cmd_csvw.value:
+        
         with open(source.get_metadata_file_path()) as f:
             metadata_dict = json.load(f)
-            json_validate(metadata_dict, some_other_metadata_schema)
-    """
+            json_validate(metadata_dict, cmd_metadata_schema)
+        
     else:
         log_as_incomplete()
-        return 
+        return {
             "statusCode": 200, 
-            "body": {"valid": False}
+            "body": {"valid": False},
+            "request_id": event["request_id"]
             }
 
     log_as_complete()
     return {
         "statusCode": 200, 
-        "body": {"valid": True}
+        "body": {"valid": True},
+        "request_id": event["request_id"]
         }
     
