@@ -6,11 +6,11 @@ from lambdautils.helpers import (
     log_as_complete,
     json_validate,
     COMMON_ZIP_PATH,
-    V4_BUCKET_NAME,
     Source,
+    empty_tmp_folder,
 )
 from lambdautils.mocking import get_s3_client, get_lambda_client, get_upload_api_client
-from lambdautils.schemas import transform_evocation_payload_schema
+from lambdautils.schemas import source_extractor_event_schema
 
 
 def handler(event, context):
@@ -20,12 +20,15 @@ def handler(event, context):
     Gets v4 from source, uploads to publishing bucket using upload api
     Invokes opendata-v4-upload-initialiser lambda
     """
+    # empty /tmp/ 
+    empty_tmp_folder()
+
+    json_validate(event, source_extractor_event_schema) 
     
     client = get_lambda_client()
     s3 = get_s3_client() 
+    upload_api = get_upload_api_client()
     
-    # Validate that the event matches the schema "transform_evocation_payload_schema"
-    json_validate(event, transform_evocation_payload_schema)
     bucket = event["source"]["bucket"]
     zip_file = event["source"]["zip_file"]
     
@@ -42,12 +45,11 @@ def handler(event, context):
         )
     v4_path = datafiles[0]
 
-    # initialise UploadApiClient
-    upload_api = get_upload_api_client()
     # upload the file
     s3_url = upload_api.post_v4_to_s3(v4_path)
     
     event["s3_url"] = s3_url
+    del event["transform"] # no longer needed
 
     r = client.invoke(
         FunctionName="opendata-v4-upload-initialiser",
@@ -56,6 +58,11 @@ def handler(event, context):
     )
 
     log_as_complete()
+
+    return {
+        "statusCode": 200, 
+        "body": "lambda completed"
+    }
 
     
         
