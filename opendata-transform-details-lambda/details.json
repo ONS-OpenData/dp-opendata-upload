@@ -1,23 +1,30 @@
 {
-    "dataset1": {
-        "transform": "<some github repo with the transform in>",
-        "transform_type": "none",
-        "dataset_id": "faster-indicators-shipping-data",
-        "edition_id": "time-series",
-        "collection_name": "CMD lambda test"
-      },
-    "dataset2": {
-        "transform": "<some github repo with the transform in>",
-        "transform_type": "none",
-        "dataset_id": "<dataset_2_id>",
-        "edition_id": "<edition_name>",
-        "collection_name": "<collection_name>"
-      },
-    "suicides-in-the-uk": {
-      "transform": "ALREADY TRANSFORMED",
-      "transform_type": "none",
-      "dataset_id": "suicides-in-the-uk",
-      "edition_id": "2020",
-      "collection_name": "CMD Suicides"
+  "dataset1": {
+    "transform": "<some github repo with the transform in>",
+    "transform_type": "none",
+    "dataset_id": "faster-indicators-shipping-data",
+    "edition_id": "time-series",
+    "collection_name": "CMD shipping data using lambdas"
+    },
+  "dataset2": {
+    "transform": "<some github repo with the transform in>",
+    "transform_type": "none",
+    "dataset_id": "online-job-advert-estimates",
+    "edition_id": "feb-2020-index-by-category",
+    "collection_name": "CMD online jobs using lambdas"
+    },
+  "dataset-transform": {
+    "transform": "index-private-housing-rental-prices",
+    "transform_type": "short",
+    "dataset_id": "index-private-housing-rental-prices",
+    "edition_id": "time-series",
+    "collection_name": "CMD iphrp data transform using lambdas"
+    },
+  "databaker-transform": {
+    "transform": "suicides",
+    "transform_type": "short",
+    "dataset_id": "suicides-in-the-uk",
+    "edition_id": "time-series",
+    "collection_name": "CMD suicides databaker transform using lambdas"
     }
-    }
+}
