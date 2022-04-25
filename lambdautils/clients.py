@@ -15,10 +15,10 @@ class ZebedeeClient:
     def __init__(self):
 
         url = os.environ.get("API_URL", None)
-        if not url:
+        if not url: 
             raise ValueError("Zebedee url must be exported as an environment variable")
 
-        access_token = os.environ.get("ACCESS_TOKEN", None)
+        access_token = os.environ.get("FLORENCE_TOKEN", None)
         if not access_token:
             raise ValueError(
                 "Aborting. Need an access token."
@@ -26,7 +26,8 @@ class ZebedeeClient:
 
         self.url = url
         self.access_token = access_token
-        self.headers = {"Authorization": self.access_token}
+        self.headers = {"X-Florence-Token": self.access_token}
+        print("Zebedee client initialised")
 
     def create_collection(self, collection_name: str):
         """
@@ -36,7 +37,7 @@ class ZebedeeClient:
         self.collection_name = collection_name
         r = requests.post(f"{self.url}/collection", headers=self.headers, json={"name": self.collection_name})
         # doesn't return a 200 when completed
-        # so use chek_collection_exists
+        # so use check_collection_exists
         self.check_collection_exists()
 
     def check_collection_exists(self):
@@ -54,7 +55,7 @@ class ZebedeeClient:
         """
         Gets collection_id from newly created collection
         """
-
+        
         collection_name_for_url = self.collection_name.replace(' ', '').lower()
 
         r = requests.get(f"{self.url}/collection/{collection_name_for_url}", headers=self.headers)
@@ -125,6 +126,7 @@ class RecipeApiClient:
         self.access_token = access_token
         self.url = f"{api_url}/recipes"
         self.headers = {"Authorization": self.access_token}
+        print("Recipe client initialised")
 
     def get_all_recipes(self) -> (dict):
         """
@@ -188,7 +190,7 @@ class RecipeApiClient:
 
 class DatasetApiClient:
 
-    def __init__(self, s3_url: str):
+    def __init__(self):
 
         url = os.environ.get("API_URL", None)
         if not url:
@@ -201,16 +203,11 @@ class DatasetApiClient:
             raise ValueError(
                 "Aborting. Need an access token."
             )
-        
-        if not s3_url:
-            raise ValueError(
-                "Aborting. s3_url is required"
-            )
 
         self.access_token = access_token
         self.url = url
         self.headers = {"Authorization": self.access_token}
-        self.s3_url = s3_url
+        print("Dataset client initialised")
 
     def get_all_dataset_api_jobs(self) -> (dict):
         """
@@ -252,11 +249,20 @@ class DatasetApiClient:
         instance_id = dataset_jobs_dict[-1]["links"]["instances"][0]["id"]
         return latest_id, recipe_id, instance_id
 
-    def post_new_job(self, recipe: dict) -> (Tuple[str, str]):
+    def post_new_job(
+        self, 
+        recipe: dict,
+        s3_url: str
+        ) -> (Tuple[str, str]):
         """
         Creates a new job in the /dataset/jobs API
         Job is created in state 'created'
         """
+
+        if not s3_url:
+            raise ValueError(
+                "Aborting. s3_url is required"
+            )
         
         payload = {
             "recipe": recipe["id"],
@@ -265,7 +271,7 @@ class DatasetApiClient:
             "files": [
                 {
                     "alias_name": recipe['files'][0]['description'], 
-                    "url": self.s3_url
+                    "url": s3_url
                 }
             ],
         }
@@ -472,7 +478,8 @@ class DatasetApiClient:
         Can do multiple at once and upload will replace any existing ones
         '''        
 
-        if 'usage_notes' not in metadata_dict.keys():
+        if not bool(metadata_dict['usage_notes']):
+            print("No usage notes to add")
             return 'No usage notes to add'
     
         usage_notes = metadata_dict['usage_notes']
@@ -515,6 +522,7 @@ class UploadApiClient:
         self.access_token = access_token
         self.url = f"{api_url}/upload"
         self.headers = {"Authorization": self.access_token}
+        print("Upload client initialised")
 
     def post_v4_to_s3(self, v4_path: str):
         # properties that do not change for the upload
@@ -558,8 +566,10 @@ class UploadApiClient:
         s3_key = params["resumableIdentifier"]
         s3_url = f"https://s3-eu-west-1.amazonaws.com/ons-dp-develop-publishing-uploaded-datasets/{s3_key}"
     
-        # delete temp files
+        # delete temp files & tmp v4
+        temp_files.append(v4_path)
         self.delete_temp_chunks(temp_files)
+        print("Upload to s3 complete")
         
         return s3_url
 
@@ -584,11 +594,101 @@ class UploadApiClient:
 
     def delete_temp_chunks(self, temporary_files: list):
         """
-        Deletes the temporary chunks that were uploaded - is needed?
+        Deletes the temporary chunks that were uploaded
         """
         for file in temporary_files:
             os.remove(file)
 
 
 
-        
+class CollectionApiClient:
+    """
+    Client to interact with collection API
+    Creating and updating collections
+    """
+    def __init__(self):
+
+        #access_token = os.environ.get("ACCESS_TOKEN", None)
+        access_token = os.environ.get("FLORENCE_TOKEN", None)
+        if not access_token:
+            raise ValueError(
+                "Aborting. Need an access token."
+            )
+
+        api_url = os.environ.get("API_URL", None)
+        if not api_url:
+            raise ValueError(
+                "The api url must be exported as an environment variable"
+            )
+
+        self.access_token = access_token
+        # requests use both of the below url's
+        self.url_1 = f"{api_url}/collection"
+        self.url_2 = f"{api_url}/collections"
+        #self.headers = {"Authorization": self.access_token}
+        self.headers = {"X-Florence-Token": self.access_token}
+        print("Collection client initialised")
+
+    def create_collection(self, collection_name: str):
+
+        self.collection_name = collection_name
+        requests.post(self.url_1, headers=self.headers, json={"name": self.collection_name})
+        # does not return a 200, so check the collection was created, which
+        # also finds the collection_id
+        self.check_collection_exists()
+
+    def check_collection_exists(self):
+        # TODO - check to make sure collection is empty
+        self.get_collection_id()
+        r = requests.get(f"{self.url_1}/{self.collection_id}")
+        if r.status_code != 200:
+            raise Exception(f'Collection "{collection_name}" not created - returned a {r.status_code} error')
+    
+    def get_collection_id(self):
+        collection_list = self.get_all_collections()
+        for collection in collection_list:
+            if collection["name"] == self.collection_name:
+                collection_id = collection["id"]
+                break
+    
+        self.collection_id = collection_id
+
+    def get_all_collections(self):
+
+        r = requests.get(self.url_2, headers=self.headers)
+        collection_list = r.json()
+        return collection_list
+
+    def add_dataset_to_collection(self, dataset_id: str):
+        """ Adds dataset landing page to a collection """
+        r = requests.put(
+            f"{self.url_2}/{self.collection_id}/datasets/{dataset_id}", 
+            headers=self.headers, 
+            json={"state": "Complete"}
+            )
+
+        if r.status_code == 200:
+            print(f"{dataset_id} - Dataset landing page added to collection")
+        else:
+            raise Exception(f"{dataset_id} - Dataset landing page not added to collection - returned a {r.status_code} error")
+
+    def add_dataset_version_to_collection(
+        self, 
+        dataset_id: str, 
+        edition: str, 
+        version_number :str
+        ):
+        """ Adds dataset version to a collection """
+        r = requests.put(
+            f"{self.url_2}/{self.collection_id}/datasets/{dataset_id}/editions/{edition}/versions/{version_number}",
+            headers=self.headers,
+            json={"state": "Complete"}
+        )
+
+        if r.status_code == 200:
+            print(f"{dataset_id} - Dataset version '{version_number}' added to collection")
+        else:
+            raise Exception(f"{dataset_id} - Dataset version '{version_number}' not added to collection - returned a {r.status_code} error")
+
+
+

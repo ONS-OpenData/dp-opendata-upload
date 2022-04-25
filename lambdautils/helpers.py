@@ -14,6 +14,7 @@ from .schemas import manifest_schema
 
 COMMON_ZIP_PATH = "/tmp/source.zip"
 V4_BUCKET_NAME = "ons-dp-develop-publishing-uploaded-datasets"
+TRANSFORM_URL = "https://raw.github.com/ONS-OpenData/cmd-transforms/master"
 
 
 class InvocationResult(Enum):
@@ -51,6 +52,8 @@ class MetadataHandler(Enum):
     """
 
     correctly_structured = "correctly_structured"
+    cmd_csvw = "cmd_csvw"
+
 
 
 class Source:
@@ -149,12 +152,138 @@ def dataset_name_from_zip_name(zip_name: str) -> (str):
     return dataset_name
 
 
+def empty_tmp_folder():
+    """
+    Removes anything in /tmp/
+    """
+    leftover_files = listdir("/tmp")
+    for file in leftover_files:
+        if os.path.isdir(f"/tmp/{file}"):
+            continue # ignoring macos & pycache
+        os.remove(f"/tmp/{file}")
+    print("/tmp has been emptied")
+
+
 def json_validate(data: dict, schema: dict):
     """
     Wrap jsonvalidate to incorporate some logging
     """
     try:
         validate(instance=data, schema=schema)
+        print("Schema validated")
     except ValidationError as err:
         log_as_incomplete()
         raise err
+
+def request_id_check(event_dict: dict, response_dict: dict):
+    """
+    Checks request id from event matches request id from a lambda request response
+    """
+    event_id = event_dict["request_id"]
+    response_id = response_dict["request_id"]
+    if event_id != response_id:
+        log_as_incomplete()
+        raise ValueError(f"aborting, request_id's do not match {event_id}, {response_id}")
+    print("request_id's match")
+
+def cmd_csvw_metadata_parser(csv_w: dict):
+    """
+    converts a csv_w created from CMD into the required metatdata format for the API's
+    """
+    # Not all fields from the csv_w are included here
+    metadata_dict = {}
+
+    # split into 3
+    metadata_dict["metadata"] = {}
+    metadata_dict["dimension_data"] = {}
+    metadata_dict["usage_notes"] = {}
+
+    # currently hacky..
+    if "dct:title" in csv_w.keys():
+        metadata_dict["metadata"]["title"] = csv_w["dct:title"]
+        
+    if "dct:description" in csv_w.keys():
+        metadata_dict["metadata"]["description"] = csv_w["dct:description"]
+
+    # TODO - more than one contact?
+    if "dcat:contactPoint" in csv_w.keys():
+        metadata_dict["metadata"]["contacts"] = [{}]
+        if "vcard:fn" in csv_w["dcat:contactPoint"][0].keys():
+            metadata_dict["metadata"]["contacts"][0]["name"] = csv_w["dcat:contactPoint"][0]["vcard:fn"]
+        if "vcard:tel" in csv_w["dcat:contactPoint"][0].keys():
+            metadata_dict["metadata"]["contacts"][0]["telephone"] = csv_w["dcat:contactPoint"][0]["vcard:tel"]
+        if "vcard:email" in csv_w["dcat:contactPoint"][0].keys():
+            metadata_dict["metadata"]["contacts"][0]["email"] = csv_w["dcat:contactPoint"][0]["vcard:email"]
+
+    if "dct:accrualPeriodicity" in csv_w.keys():
+        metadata_dict["metadata"]["release_frequency"] = csv_w["dct:accrualPeriodicity"]
+
+    if "tableSchema" in csv_w.keys():
+        dimension_metadata = csv_w["tableSchema"]["columns"]
+        metadata_dict["dimension_data"] = Dimension_Metadata_From_CSVW(dimension_metadata)
+        metadata_dict["metadata"]["unit_of_measure"] = Get_Unit_Of_Measure(dimension_metadata)
+    
+    if "notes" in csv_w.keys():
+        metadata_dict["usage_notes"] = Usage_Notes_From_CSVW(csv_w["notes"])
+        
+    print("cmd_csvw_metadata_parser completed parsing")
+    return metadata_dict
+
+def Dimension_Metadata_From_CSVW(dimension_metadata):
+    '''
+    Converts dimension metadata from csv-w to usable format for CMD APIs
+    Takes in csv_w['tableSchema']['columns'] - is a list
+    Returns a dict of dicts
+    '''
+    assert type(dimension_metadata) == list, "dimension_metadata should be a list"
+    
+    # first item in list should be observations
+    # quick check
+    assert dimension_metadata[0]["titles"].lower().startswith("v4_"), "csv_w[tableSchema][columns][0] is not the obs column"
+
+    # number of data marking columns
+    number_of_data_markings = int(dimension_metadata[0]["titles"].split("_")[-1])
+    
+    wanted_dimension_metadata = dimension_metadata[2 + number_of_data_markings::2]
+    dimension_metadata_for_cmd = {}
+    
+    for item in wanted_dimension_metadata:
+        name = item["titles"]
+        label = item["name"]
+        description = item["description"]
+        dimension_metadata_for_cmd[name] = {"label": label, "description": description}
+        
+    return dimension_metadata_for_cmd
+
+def Get_Unit_Of_Measure(dimension_metadata):
+    '''
+    Pulls unit_of_measure from dimension metadata
+    '''
+    assert type(dimension_metadata) == list, "dimension_metadata should be a list"
+    
+    # first item in list should be observations
+    # quick check
+    assert dimension_metadata[0]["titles"].lower().startswith("v4_"), "csv_w[tableSchema][columns][0] is not the obs column"
+    if "name" in dimension_metadata[0].keys():
+        unit_of_measure = dimension_metadata[0]["name"]
+    else:
+        unit_of_measure = ""
+    
+    return unit_of_measure
+
+def Usage_Notes_From_CSVW(usage_notes):
+    '''
+    Pulls usage notes from csv-w to usable format for CMD APIs
+    Takes in csv_w['notes'] - is a list
+    Creates a list of dicts
+    '''
+    assert type(usage_notes) == list, "usage_notes should be a list"
+    
+    usage_notes_list = []
+    for item in usage_notes:
+        single_usage_note = {}
+        single_usage_note["title"] = item["type"]
+        single_usage_note["note"] = item["body"]
+        usage_notes_list.append(single_usage_note)
+        
+    return usage_notes_list

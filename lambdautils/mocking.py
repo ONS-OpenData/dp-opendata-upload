@@ -6,7 +6,7 @@ import shutil
 import boto3
 
 from .helpers import COMMON_ZIP_PATH
-from .clients import ZebedeeClient, RecipeApiClient, DatasetApiClient, UploadApiClient
+from .clients import ZebedeeClient, RecipeApiClient, DatasetApiClient, UploadApiClient, CollectionApiClient
 
 
 def get_s3_client():
@@ -37,18 +37,27 @@ def get_recipe_api_client():
     return RecipeApiClient()
 
 
-def get_dataset_api_client(s3_url: str = None):
+def get_dataset_api_client():
     """When testing return a mock client for faking interactions with the dataset api"""
     if os.environ.get("IS_TEST", None):
         return MockDatasetApiClient()
-    return DatasetApiClient(s3_url=s3_url)
+    return DatasetApiClient()
 
 
 def get_upload_api_client():
     """ When testing return a mock client for faking interactions with the upload api """
     if os.environ.get("IS_TEST", None):
+        # TODO - create mock client
         return MockUploadClient()
     return UploadApiClient()
+
+
+def get_collection_client():
+    """ When testing return a mock client for faking interactions with the collections api """
+    if os.environ.get("IS_TEST", None):
+        # TODO - create mock client
+        return MockCollectionClient()
+    return CollectionApiClient()
 
 
 def payload(payload_dict: dict):
