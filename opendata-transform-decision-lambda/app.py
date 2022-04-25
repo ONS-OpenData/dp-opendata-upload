@@ -9,10 +9,8 @@ from lambdautils.helpers import (
 )
 from lambdautils.mocking import get_lambda_client
 from lambdautils.schemas import (
-    bucket_notification_source_event_schema,
-    transform_details_schema,
-    source_bucket_schema,
-    transform_evocation_payload_schema,
+    transform_decision_event_schema,
+    transform_details_response_schema,
 )
 
 
@@ -22,16 +20,27 @@ def handler(event, context):
     Invokes opendata-transform-details-lambda
     Invokes one of the transform lambdas
     """
+    # Delete next 2 rows, currently there to stop lambda triggering when a new zip file is uploaded
+    print("Lambda turned off")
+    return {"body": "Lambda turned off"}
+    
+    json_validate(event, transform_decision_event_schema) 
+
+    # Creating a unique identifier, to always be passed along
+    # TODO - generate this
+    request_id = "opendata_1234-abcd-5678-efgh" 
 
     client = get_lambda_client()
-
-    json_validate(event, bucket_notification_source_event_schema)
+    
     record = event.get("Records")[0]
     bucket = record["s3"]["bucket"]["name"]
     zip_file = record["s3"]["object"]["key"]
 
-    source_dict = {"bucket": bucket, "zip_file": zip_file}
-    json_validate(source_dict, source_bucket_schema)
+    source_dict = {
+        "bucket": bucket, 
+        "zip_file": zip_file,
+        "request_id": request_id
+        }
 
     r = client.invoke(
         FunctionName="opendata-transform-details-lambda",
@@ -40,6 +49,7 @@ def handler(event, context):
     )
 
     payload_dict = json.load(r["Payload"])
+    json_validate(payload_dict, transform_details_response_schema)
     if payload_dict["statusCode"] != 200:
         log_as_incomplete()
         raise Exception(
@@ -47,19 +57,22 @@ def handler(event, context):
         ) 
 
     transform_details = payload_dict["body"]["transform_details"]
-    json_validate(transform_details, transform_details_schema)
     transform_type = transform_details["transform_type"]
+    del source_dict["request_id"] # goes on top level of dict
+    transform_details["source"] = source_dict
+    transform_details["request_id"] = request_id
+    del transform_details["transform_type"]  # no longer needed
 
+    logging.info(f"Transform type is {transform_type}")
+    print(f"Transform type is {transform_type}")
+
+    
     if transform_type == TransformType.long.value:
         log_as_incomplete()
         raise NotImplementedError("Not looking at long running transforms yet.")
 
     elif transform_type == TransformType.none.value:
-        logging.info(f"Transform type is {transform_type}")
-
-        transform_details["source"] = source_dict
-        del transform_details["transform_type"]  # no longer needed
-        json_validate(transform_details, transform_evocation_payload_schema)
+        print("Invoking opendata-source-extractor-lambda")
 
         r = client.invoke(
             FunctionName="opendata-source-extractor-lambda",
@@ -69,15 +82,29 @@ def handler(event, context):
         
         log_as_complete()
         return {
-            "body": "lambda completed"
+            "statusCode": 200,
+            "body": "lambda completed, invoked opendata-source-extractor-lambda",
+            "request_id": request_id
         }
 
     elif transform_type == TransformType.short.value:
-        log_as_incomplete()
-        raise NotImplementedError("Not looking at short running transforms yet.")
+        print("Invoking opendata-transformer-lambda")
+
+        r = client.invoke(
+            FunctionName="opendata-transformer-lambda",
+            InvocationType="Event",
+            Payload=json.dumps(transform_details),
+        )
+        
+        log_as_complete()
+        return {
+            "statusCode": 200,
+            "body": "lambda completed, invoked opendata-transformer-lambda",
+            "request_id": request_id
+        }
 
     else:
         log_as_incomplete()
         raise ValueError(
             f"Unknown transform type {transform_type}. Should be one of {TransformType.values()}"
-        )
+        ) 
