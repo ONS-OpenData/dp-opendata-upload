@@ -9,7 +9,7 @@ from lambdautils.helpers import (
     log_as_complete,
     json_validate,
 )
-from lambdautils.schemas import finaliser_payload_schema
+from lambdautils.schemas import upload_poller_event_schema
 from lambdautils.mocking import get_dataset_api_client, get_lambda_client
 
 
@@ -21,18 +21,16 @@ def handler(event, context):
     When finished invokes opendata-v4-upload-finaliser
     Invokes itself and closes current when time limit exceeded
     """
+    
+    #message = json.loads(event["Records"][0]["Sns"]["Message"])
 
-    access_token = os.environ.get("ZEBEDEE_ACCESS_TOKEN", None)
-    if not access_token:
-        log_as_incomplete()
-        msg = "Aborting. Need a zebedee access token."
-        logging.error(msg)
-        raise ValueError(msg)
+    json_validate(event, upload_poller_event_schema)
 
     client = get_lambda_client()
-    dataset_api = get_dataset_api_client(access_token)
+    dataset_api = get_dataset_api_client()
 
-    json_validate(event, finaliser_payload_schema)
+
+    time.sleep(60) # waits for instance to begin
 
     # Env vars we're gonna need
     maximum_polling_time = os.environ.get("MAXIMUM_POLLING_TIME", None)
@@ -50,25 +48,42 @@ def handler(event, context):
         raise Exception(msg)
 
     start_time = datetime.datetime.now()
+    current_count = event["count"]
+
+    if current_count == 5:
+        log_as_incomplete()
+        print("Poller has been invoked max number of times")
+        return {"body": "Poller has been invoked max number of times"}
 
     while True:
+        
         if dataset_api.upload_complete(event["instance_id"]):
+            del event["count"]
 
-                # Call next lambda, finish, dont start another one of these
-                client.invoke(
-                    FunctionName="opendata-v4-upload-finaliser",
-                    InvocationType="Event",
-                    Payload=json.dumps(event),
-                )
-                log_as_complete()
-                break
+            # Call next lambda, finish, dont start another one of these
+            client.invoke(
+                FunctionName="opendata-v4-upload-finaliser",
+                InvocationType="Event",
+                Payload=json.dumps(event),
+            )
+            log_as_complete()
+            return {"body": "lambda complete"}
+        
+
         elif datetime.datetime.now() > (start_time + datetime.timedelta(0, int(maximum_polling_time))):
+
+            current_count += 1
+            event["count"] = current_count
+
             client.invoke(
                         FunctionName="opendata-v4-upload-poller",
                         InvocationType="Event",
                         Payload=json.dumps(event),
                     )
-            logging.warning('New poller invoked')
-            break
+            print("New poller invoked")
+            logging.warning("New poller invoked")
+            return {"body": "lambda invoking itself"}
+
         else:
+            print("Waiting before going back through the loop")
             time.sleep(int(delay_between_checks))
