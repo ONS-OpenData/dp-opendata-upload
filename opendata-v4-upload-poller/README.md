@@ -6,5 +6,14 @@ Currently there is no real error message if the upload fails, which would cause 
 - Checks the "status" of the upload using the `instance_id`
 - Starts a loop
 - If the status is `complete` the [opendata-v4-upload-finaliser](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/opendata-v4-upload-finaliser/README.md) is invoked.
-- Elif the lambda run time is over a set time, the lambda then invokes another upload-poller lambda and then ends the current one.
-- Else the lambda waits a set time and starts the loop over by checking the status of the upload. This is common while the observations are being imported.
+- Elif the lambda run time is over a set time (`MAXIMUM_POLLING_TIME`), the lambda then invokes another upload-poller lambda and then ends the current one.
+- Else the lambda waits a set time (`DELAY_BETWEEN_CHECKS`) and starts the loop over by checking the status of the upload. This is common while the observations are being imported.
+
+**Environment variables**
+- ACCESS_TOKEN 
+- API_URL
+- DELAY_BETWEEN_CHECKS
+- MAXIMUM_POLLING_TIME
+
+**VPC**
+- Is on a VPC
