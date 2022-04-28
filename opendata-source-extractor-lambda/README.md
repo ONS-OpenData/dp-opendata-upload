@@ -10,4 +10,4 @@ This lambda is triggered by [opendata-transform-decision-lambda](https://github.
 - API_URL
 
 **VPC**
-Is on a VPC
+- Is on a VPC
