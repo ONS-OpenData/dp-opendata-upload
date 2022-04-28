@@ -1,6 +1,6 @@
-## Purpose
-This lambda is called on when no transforming is required, the data in the original zip file is already a v4. 
-The lambda unpacks the v4 and uploads it to the publishing bucket via the upload API. It then invokes the opendata-v4-upload-initialiser with an event invocation type.
+This lambda is triggered by [opendata-transform-decision-lambda](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/opendata-transform-decision-lambda/README.md). This lambda is called on when no transforming is required, the data in the original zip file is already a v4.
 
-The lambda is triggered by the opendata-transform-decision-lambda
-
+**Actions**
+- Downloads and extracts the files from the original zip file uploaded to opendata-transform-needed-source-bucket
+- The v4 is then uploaded to the publishing s3 bucket via the upload API
+- Invokes the [opendata-v4-upload-initialiser](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/opendata-v4-upload-initialiser/README.md)
