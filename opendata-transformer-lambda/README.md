@@ -8,3 +8,10 @@ This lambda is triggered by [opendata-transform-decision-lambda](https://github.
 - Imports the transform script as `transform` and then runs the transform
 - The resultant v4 is then uploaded to the publishing s3 bucket via the upload API
 - Invokes the [opendata-v4-upload-initialiser](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/opendata-v4-upload-initialiser/README.md)
+
+**Environment variables**
+- ACCESS_TOKEN 
+- API_URL
+
+**VPC**
+- Is on a VPC
