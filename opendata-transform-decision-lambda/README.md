@@ -5,4 +5,4 @@ The decision lambda is the first lambda of the pipeline, and is triggered by a f
 - Creates a request_id
 - Invokes the [opendata-transform-details-lambda](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/opendata-transform-details-lambda/README.md) and requests a response
 - Uses the `transform_type` from the response to determine which lambda to invoke next
-- Invokes either `opendata-source-extractor-lambda` / `opendata-transformer-lambda` based on whether a transform is needed or not 
+- Invokes either [opendata-source-extractor-lambda](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/opendata-source-extractor-lambda/README.md) / [opendata-transformer-lambda](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/opendata-transformer-lambda/README.md) based on whether a transform is needed or not 
