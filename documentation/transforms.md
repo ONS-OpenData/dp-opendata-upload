@@ -1,21 +1,17 @@
 # Format of transform
-This is an entry point for writing CMD transforms to be used by the `opendata-transform-lambda` for the AWS pipeline. This is all still open to change but for now this is how it will be.
+This is an entry point for writing CMD transforms to be used by the [opendata-transformer-lambda](https://github.com/ONS-OpenData/dp-opendata-upload/tree/main/opendata-transformer-lambda) for the AWS pipeline. This is all still open to change but for now this is how it will be.
 
 **Location**
 
-All transforms will be stored in the `cmd-transforms` repo of the `ONS-OpenData` github in a folder named after the dataset. Each folder will contain a `main.py` file
+All transforms will be stored in the [cmd-transforms](https://github.com/ONS-OpenData/cmd-transforms) repo of the `ONS-OpenData` github in a folder named after the dataset. Each folder will contain a `main.py` file and possibly a `requirements.txt` file.
 
-**Transform**
+**main.py**
 
-The `main.py` file will consist of functions where the main function (the transform) will be called `transform` and will take in one argument. This argument will be `files` which refers to a list of the source data files. The `opendata-transform-lambda` will pick up a zip file from a s3 bucket and then extract these files into `/tmp/` so this location may become hard coded as this but for now it will be left changable.
+The main.py file is essentially the transform for the specified dataset. It is picked up by the `opendata-transform-retriever` and ran by the `opendata-transformer-lambda`.
+This file contains a fuction called `transform()` and will also contain any number of further functions that are specific to the transform.
+The `transform()` function takes in one argument, `files`, which is a list containing the source data file(s). The v4 is outputted to the `/tmp/` directory, which is how you are able to write files using the lambdas. The transform always returns to output file path.
 
-The transform function will then need to find the required source file(s) from the extracted files, which will require some 'rule' where it looks for only 'xlsx' files or maybe a csv file with a certain name. Within the extracted files there will be a `manifest.json` file and a metadata file which aren't needed for the transform.
-
-Then the actual transforming of the data will take place if using databaker. Then the 'post proccessing' bits. The file will then be outputted in the same location as all of the other files. The output file name will use the format `v4-{dataset_id}.csv` and then finally "SparsityFiller" will be run if required. The function will end by returning the `output_file` full path, which will then be used further in the `opendata-transform-lambda`.
-
-The function is not called within `main.py` but will be called from `opendata-transform-lambda` - is this the correct way to do this??
-
-**Example**
+**transform() example**
 
 ```python
 import pandas, glob
@@ -29,7 +25,7 @@ def transform(files):
   
   '''do some databaking and post processing to get v4'''
   
-  output_file = location + 'v4-{dataset_id}.csv'
+  output_file = '/tmp/v4-{dataset_id}.csv'
   # write v4
   return output_file
 
@@ -41,3 +37,14 @@ def some_function(value):
 
 
 ```
+
+**requirements.txt**
+
+This is a text file that supports the transform. It contains a list of any further python files that are needed by the transform that are not included in `main.py`. These are files that are used by multiple transforms so have been centralised, and example would be `sparsity-functions`. These files are kept in [modules](https://github.com/ONS-OpenData/cmd-transforms/tree/master/modules). Each folder is a different file that can be named within `requirements.txt` and each folder contains a `module.py` file.
+
+When a `requirements.txt` is specified within a transform folder, the `opendata-transformer-lambda` knows to also pick up the specified modules, so that it can also be used.
+
+
+
+
+
