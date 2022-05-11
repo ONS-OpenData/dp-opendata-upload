@@ -1,4 +1,4 @@
-This lambda is triggered by [opendata-transformer-lambda](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/opendata-transformer-lambda/README.md)
+This lambda is triggered by [opendata-transformer-lambda](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/opendata-transformer-lambda)
 
 **Actions**
 - Gets the `main.py` file for the relevant dataset from the [cmd-transforms](https://github.com/ONS-OpenData/cmd-transforms) repo and stores it as a string
