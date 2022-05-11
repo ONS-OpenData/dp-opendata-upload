@@ -1,4 +1,4 @@
-The metadata validator is triggered by [opendata-transform-details-lambda](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/opendata-transform-details-lambda/README.md).
+The metadata validator is triggered by [opendata-transform-details-lambda](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/opendata-transform-details-lambda).
 
 **Actions** 
 - Downloads and extracts the files from the original zip file uploaded to `opendata-transform-needed-source-bucket`
