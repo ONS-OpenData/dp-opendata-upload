@@ -33,7 +33,7 @@ def handler(event, context):
         requirements = requirements.strip().split("\n")
 
         for module in requirements:
-            module_url = f"{TRANSFORM_URL}/{module}/module.py"
+            module_url = f"{TRANSFORM_URL}/modules/{module}/module.py"
             module_r = requests.get(module_url)
             if module_r.status_code != 200:
                 log_as_incomplete()
