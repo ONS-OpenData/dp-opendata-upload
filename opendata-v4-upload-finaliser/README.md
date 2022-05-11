@@ -1,4 +1,4 @@
-This lambda is triggered by [opendata-v4-upload-poller](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/opendata-v4-upload-poller/README.md). The purpose of the finaliser is to use the CMD APIs to make the data ready for publishing.
+This lambda is triggered by [opendata-v4-upload-poller](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/opendata-v4-upload-poller). The purpose of the finaliser is to use the CMD APIs to make the data ready for publishing.
 
 **Actions**
 - Creates a new collection
