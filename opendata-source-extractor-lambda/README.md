@@ -1,4 +1,4 @@
-This lambda is triggered by [opendata-transform-decision-lambda](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/opendata-transform-decision-lambda/README.md). This lambda is called on when no transforming is required, the data in the original zip file is already a v4.
+This lambda is triggered by [opendata-transform-decision-lambda](https://github.com/ONS-OpenData/dp-opendata-upload/blob/main/opendata-transform-decision-lambda). This lambda is called on when no transforming is required, the data in the original zip file is already a v4.
 
 **Actions**
 - Downloads and extracts the files from the original zip file uploaded to opendata-transform-needed-source-bucket
